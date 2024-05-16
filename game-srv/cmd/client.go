@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,6 +29,7 @@ to quickly create a Cobra application.`,
 		)
 
 		// TODO continue here
+		time.Sleep(10 * time.Second)
 	},
 }
 
