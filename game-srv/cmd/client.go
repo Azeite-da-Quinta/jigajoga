@@ -5,8 +5,8 @@ package cmd
 
 import (
 	"log/slog"
-	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -28,15 +28,17 @@ to quickly create a Cobra application.`,
 			slog.Int("port", viper.GetInt("port")),
 		)
 
-		// TODO continue here
-		time.Sleep(10 * time.Second)
+		client.Dial(client.Config{
+			Version: viper.GetString("version"),
+			Host:    viper.GetString("host"),
+		})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().String("host", "127.0.0.1:8080", "pass the host of the server to connect to")
+	clientCmd.Flags().String("host", "http://127.0.0.1:8080", "pass the host of the server to connect to")
 	viper.BindPFlag("host", clientCmd.Flags().Lookup("host"))
-	viper.SetDefault("host", "127.0.0.1:80")
+	viper.SetDefault("host", "http://127.0.0.1:80")
 }

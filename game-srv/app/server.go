@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -37,10 +36,14 @@ func Start(c Config) {
 	<-ctx.Done()
 	slog.Info("closing: received interrupt")
 
-	ctxTo, cancel := context.WithTimeoutCause(ctx, 2*time.Second, errors.New("closing: timeout exceed"))
+	ctxTo, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	s.Shutdown(ctxTo) // > program doesn't exit and waits instead for Shutdown to return.
+	// > program doesn't exit and waits instead for Shutdown to return.
+	if err := s.Shutdown(ctxTo); err != nil {
+		slog.Error("http shutdown", "error", err)
+	}
+
 	slog.Info("closing: server terminated")
 }
 
@@ -59,8 +62,11 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 				http.StatusText(http.StatusServiceUnavailable),
 				http.StatusServiceUnavailable,
 			)
+			return
 		}
-		w.Write([]byte("Realthy"))
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Ready"))
 	})
 
 	s := &http.Server{
@@ -75,7 +81,9 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 	}
 
 	// 🚀
-	go slog.Error("listen and serve", "error", s.ListenAndServe())
+	go func() {
+		slog.Error("listen and serve", "error", s.ListenAndServe())
+	}()
 
 	return s
 }
