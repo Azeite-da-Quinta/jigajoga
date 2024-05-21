@@ -1,4 +1,4 @@
-package app
+package server
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"sync/atomic"
 	"time"
+
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/middleware"
 )
 
 type Config struct {
@@ -69,9 +71,13 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 		w.Write([]byte("Ready"))
 	})
 
+	stack := middleware.Stack(
+		middleware.Log,
+	)
+
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),
-		Handler:        mux,
+		Handler:        stack(mux),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,

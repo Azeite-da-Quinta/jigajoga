@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/app"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,7 +18,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app.Start(app.Config{
+		server.Start(server.Config{
 			Port:    viper.GetInt("port"),
 			Version: viper.GetString("version"),
 		})

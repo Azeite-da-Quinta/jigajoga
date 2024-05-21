@@ -1,0 +1,9 @@
+name: jigajoga
+
+services:
+  game-srv:
+    build:
+      context: .
+      dockerfile: game-srv/Dockerfile
+    ports:
+      - "8080:80"
