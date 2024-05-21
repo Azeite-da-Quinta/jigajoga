@@ -52,28 +52,13 @@ func Start(c Config) {
 func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 	mux := http.NewServeMux()
 
-	// TODO: move handlers elsewhere
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Healthy"))
-	})
-
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		if ready == nil || !ready.Load() {
-			http.Error(w,
-				http.StatusText(http.StatusServiceUnavailable),
-				http.StatusServiceUnavailable,
-			)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ready"))
-	})
-
 	stack := middleware.Stack(
 		middleware.Log,
 	)
+
+	mux.HandleFunc("GET /healthz", healthHandler())
+	mux.HandleFunc("GET /readyz", readyHandler(ready))
+	mux.HandleFunc("GET /ws", wsHandler())
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),
