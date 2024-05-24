@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// StatusWriter wrapper around ResponseWriter that
+// keeps track of the HTTP status code and
+// implements http.Hijaker
 type StatusWriter struct {
 	http.ResponseWriter
 	Status int

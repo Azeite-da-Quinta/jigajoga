@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/middleware"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/ws"
 )
 
 type Config struct {
@@ -27,6 +28,8 @@ func Start(c Config) {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	var ready atomic.Bool
 	s := Serve(ctx, c.Port, &ready)
@@ -56,9 +59,12 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 		middleware.Log,
 	)
 
+	rt := ws.NewRouter()
+	go rt.Run(ctx)
+
 	mux.HandleFunc("GET /healthz", healthHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(ready))
-	mux.HandleFunc("GET /ws", wsHandler())
+	mux.HandleFunc("GET /ws", ws.Handler(ctx, rt))
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),

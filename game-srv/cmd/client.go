@@ -40,5 +40,5 @@ func init() {
 
 	clientCmd.Flags().String("host", "http://127.0.0.1:8080", "pass the host of the server to connect to")
 	viper.BindPFlag("host", clientCmd.Flags().Lookup("host"))
-	viper.SetDefault("host", "http://127.0.0.1:80")
+	viper.SetDefault("host", "127.0.0.1:80")
 }
