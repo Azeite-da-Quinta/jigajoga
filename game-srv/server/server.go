@@ -59,12 +59,11 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 		middleware.Log,
 	)
 
-	rt := ws.NewRouter()
-	go rt.Run(ctx)
+	notifier := ws.New(ctx)
 
 	mux.HandleFunc("GET /healthz", healthHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(ready))
-	mux.HandleFunc("GET /ws", ws.Handler(ctx, rt))
+	mux.HandleFunc("GET /ws", notifier.Handler())
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),
@@ -79,6 +78,7 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 
 	// 🚀
 	go func() {
+		defer notifier.Close()
 		slog.Error("listen and serve", "error", s.ListenAndServe())
 	}()
 

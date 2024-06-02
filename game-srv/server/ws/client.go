@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/party"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
 	"github.com/gorilla/websocket"
 )
 
@@ -23,31 +25,23 @@ var (
 )
 
 type client struct {
-	inbox chan []byte
-	id    string
-	name  string
+	user.Token
+	inbox party.InboxChan
+	room  party.PostChan
 }
 
-func (cl *client) run(ctx context.Context, rt *Router, conn *websocket.Conn) {
-	slog.Debug("connection start")
+func (cl *client) pump(ctx context.Context, conn *websocket.Conn) {
 	defer conn.Close()
-
-	rt.requests <- request{client: cl, kind: join}
-
-	defer func() {
-		rt.requests <- request{client: cl, kind: leave}
-	}()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go cl.writePump(ctx, &wg, conn)
-	go readPump(ctx, &wg, conn, rt)
+	go cl.writePump(ctx, conn, &wg)
+	go cl.readPump(ctx, conn, &wg)
 
 	wg.Wait()
-	slog.Debug("connection over")
 }
 
-func readPump(_ context.Context, wg *sync.WaitGroup, conn *websocket.Conn, rt *Router) {
+func (cl *client) readPump(ctx context.Context, conn *websocket.Conn, wg *sync.WaitGroup /*  rt *Router */) {
 	defer wg.Done()
 
 	conn.SetReadLimit(maxMessageSize)
@@ -55,6 +49,12 @@ func readPump(_ context.Context, wg *sync.WaitGroup, conn *websocket.Conn, rt *R
 	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -63,11 +63,12 @@ func readPump(_ context.Context, wg *sync.WaitGroup, conn *websocket.Conn, rt *R
 			return
 		}
 		message = bytes.TrimSpace(bytes.ReplaceAll(message, newline, space))
-		rt.broadcast(message)
+
+		cl.room <- message
 	}
 }
 
-func (cl *client) writePump(ctx context.Context, wg *sync.WaitGroup, conn *websocket.Conn) {
+func (cl *client) writePump(ctx context.Context, conn *websocket.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	pingT := time.NewTicker(pingPeriod)
@@ -81,6 +82,8 @@ func (cl *client) writePump(ctx context.Context, wg *sync.WaitGroup, conn *webso
 		case msg, ok := <-cl.inbox:
 			// inbox closed
 			if !ok {
+				slog.Debug("inbox was closed from poster. closing conn", "client", cl.ID())
+
 				_ = emitControl(conn, websocket.CloseMessage)
 				return
 			}
