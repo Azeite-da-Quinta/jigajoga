@@ -15,21 +15,18 @@ import (
 )
 
 type Config struct {
-	Version string
-	Host    string
+	Version   string
+	Host      string
+	NbWorkers int
+	NbWrites  int
 }
-
-const (
-	nbWorkers = 10
-	nbWrites  = 10
-)
 
 // Dial
 func Dial(conf Config) {
 	ctxS, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	ctx, cancel := context.WithTimeout(ctxS, nbWorkers+nbWrites*2*time.Second)
+	ctx, cancel := context.WithTimeout(ctxS, 1*time.Minute)
 	defer cancel()
 
 	if err := httpReady(conf); err != nil {
@@ -37,9 +34,12 @@ func Dial(conf Config) {
 	}
 
 	var wg sync.WaitGroup
-	for i := range nbWorkers {
+	for i := range conf.NbWorkers {
 		wg.Add(1)
-		go runWS(ctx, i, &wg, fmt.Sprintf("ws://%s/ws", conf.Host))
+		go runWS(ctx, i,
+			conf.NbWrites, &wg,
+			fmt.Sprintf("ws://%s/ws", conf.Host),
+		)
 	}
 
 	wg.Wait()
@@ -47,7 +47,7 @@ func Dial(conf Config) {
 	time.Sleep(100 * time.Millisecond)
 }
 
-func runWS(ctx context.Context, id int, wg *sync.WaitGroup, host string) {
+func runWS(ctx context.Context, id, nbWrites int, wg *sync.WaitGroup, host string) {
 	defer wg.Done()
 
 	ws, respws, err := websocket.DefaultDialer.Dial(host, http.Header{})
@@ -64,7 +64,7 @@ func runWS(ctx context.Context, id int, wg *sync.WaitGroup, host string) {
 		return nil
 	})
 
-	go write(ctx, ws, id)
+	go write(ctx, ws, id, nbWrites)
 	read(ctx, ws, id)
 	slog.Info("work done", "worker", id)
 }
@@ -78,16 +78,18 @@ func read(ctx context.Context, ws *websocket.Conn, id int) {
 		}
 
 		ws.SetReadDeadline(time.Now().Add(10 * time.Second))
+
 		mt, b, err := ws.ReadMessage()
 		if err != nil {
 			slog.Error("ws reading message", "id", id, "error", err)
 			return
 		}
+
 		slog.Info("ws reading", "id", id, "type", mt, "msg", string(b))
 	}
 }
 
-func write(ctx context.Context, ws *websocket.Conn, id int) {
+func write(ctx context.Context, ws *websocket.Conn, id, nbWrites int) {
 	for i := range nbWrites {
 		select {
 		case <-ctx.Done():
@@ -95,14 +97,16 @@ func write(ctx context.Context, ws *websocket.Conn, id int) {
 		default:
 		}
 
+		ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
+
 		err := ws.WriteMessage(
 			websocket.TextMessage,
-			[]byte(fmt.Sprintf("olá %d %d", id, i)))
+			[]byte(fmt.Sprintf("olá I'm worker %d sending %d", id, i)))
 		if err != nil {
 			slog.Error("failed to write", "id", id, "error", err)
 		}
 
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
 	}
 
 	slog.Info("worker done writing", "id", id)

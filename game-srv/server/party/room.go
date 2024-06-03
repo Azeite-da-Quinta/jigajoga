@@ -12,20 +12,20 @@ import (
 type room struct {
 	id user.Identifier
 	// map by id of all client's write channels
-	clients map[user.Identifier]PostChan
+	clients map[user.Identifier]client
 	// read incoming requests
 	requests <-chan Request
-	// read incoming messages to multicast to the room
-	multicast chan []byte
+	// read incoming messages from clients to the room
+	multicast <-chan []byte
 }
 
 // newRoom creates a new room with the required fields
-func newRoom(id user.Identifier, c <-chan Request) room {
+func newRoom(id user.Identifier, requests <-chan Request, messages <-chan []byte) room {
 	return room{
 		id:        id,
-		clients:   make(map[user.Identifier]PostChan),
-		requests:  c,
-		multicast: make(chan []byte),
+		clients:   make(map[user.Identifier]client),
+		requests:  requests,
+		multicast: messages,
 	}
 }
 
@@ -60,10 +60,9 @@ func (r *room) handleReq(req Request) {
 			"room", v.RoomID(),
 			"name", v.Name())
 
-		r.clients[v.ID()] = v.ClientInbox
-
-		// reply with the channel this room is listening on
-		v.ReplyRoom <- r.multicast
+		r.clients[v.ID()] = client{
+			inbox: v.ClientInbox,
+		}
 
 		r.sendToAll([]byte(fmt.Sprintf("%s joined", v.Name())))
 	case Leave:
@@ -73,10 +72,9 @@ func (r *room) handleReq(req Request) {
 			"name", v.Name())
 
 		// closing emit ch
-		if ch, ok := r.clients[v.ID()]; ok {
-			close(ch)
+		if cl, ok := r.clients[v.ID()]; ok {
+			cl.close()
 		}
-
 		delete(r.clients, v.ID())
 
 		r.sendToAll([]byte(fmt.Sprintf("%s left", v.Name())))
@@ -87,13 +85,13 @@ func (r *room) handleReq(req Request) {
 
 // sendToAll bytes message
 func (r *room) sendToAll(b []byte) {
-	for id, ch := range r.clients {
+	for id, cl := range r.clients {
 		select {
-		case ch <- b:
+		case cl.inbox <- b:
 		default:
 			// if unavailable
 			// 🔬 it will close if the client is unavailable
-			close(ch)
+			cl.close()
 			delete(r.clients, id)
 		}
 	}
@@ -101,9 +99,21 @@ func (r *room) sendToAll(b []byte) {
 
 // closeAll remaining client-write channels
 func (r *room) closeAll() {
-	for _, ch := range r.clients {
-		close(ch)
+	for _, cl := range r.clients {
+		cl.cancel()
+		close(cl.inbox)
 	}
 
 	clear(r.clients)
+}
+
+type client struct {
+	inbox  PostChan
+	cancel context.CancelFunc
+}
+
+// close client
+func (cl client) close() {
+	cl.cancel()
+	close(cl.inbox)
 }

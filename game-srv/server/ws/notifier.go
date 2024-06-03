@@ -8,6 +8,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// clientBuf 🔬 controls how many messages can fill
+// the client's inbox before closing
+const clientBuf = 10
+
 func New(ctx context.Context) Notifier {
 	c := make(chan party.Request, 1024)
 
@@ -22,22 +26,23 @@ func New(ctx context.Context) Notifier {
 }
 
 type Notifier struct {
+	// Submit requests to Router
 	requests chan<- party.Request
 }
-
-// clientBuf 🔬 controls how many messages can fill
-// the client's inbox before closing
-const clientBuf = 10
 
 // join a client to a room together.
 func (n *Notifier) join(ctx context.Context, conn *websocket.Conn, t user.Token) {
 	ch := make(chan []byte, clientBuf)
-	reply := make(chan party.PostChan)
+	reply := make(chan party.JoinReply)
+
+	subCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	n.requests <- party.Join{
 		Token:       t,
 		ClientInbox: ch,
 		ReplyRoom:   reply,
+		Cancel:      cancel,
 	}
 
 	defer func() {
@@ -46,17 +51,18 @@ func (n *Notifier) join(ctx context.Context, conn *websocket.Conn, t user.Token)
 		}
 	}()
 
-	roomCh := <-reply
+	resp := <-reply
 
 	c := client{
 		Token: t,
 		inbox: ch,
-		room:  roomCh,
+		room:  resp.RoomInbox,
 	}
 
-	c.pump(ctx, conn)
+	c.pump(subCtx, conn)
 }
 
+// Close notifier resources
 func (n *Notifier) Close() {
 	close(n.requests)
 }

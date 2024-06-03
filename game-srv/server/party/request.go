@@ -1,6 +1,10 @@
 package party
 
-import "github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+import (
+	"context"
+
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+)
 
 // Request incoming
 type Request interface {
@@ -14,7 +18,13 @@ type Join struct {
 	user.Token
 	ClientInbox PostChan
 	// Reply in this channel with the room's write channel
-	ReplyRoom chan PostChan
+	ReplyRoom chan JoinReply
+	// client's context
+	Cancel context.CancelFunc
+}
+
+type JoinReply struct {
+	RoomInbox PostChan
 }
 
 func (j Join) Get() user.Token {

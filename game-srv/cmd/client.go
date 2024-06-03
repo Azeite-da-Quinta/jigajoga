@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -15,22 +12,19 @@ import (
 var clientCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Test client to connect to the game-srv",
-	Long: `TODO EDIT
-A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Use this command to connect to the game-srv.
+You can pass a few arguments like host, workers and jobs.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Info("client started",
 			slog.String("version", viper.GetString("version")),
-			slog.Int("port", viper.GetInt("port")),
+			slog.String("host", viper.GetString("host")),
 		)
 
 		client.Dial(client.Config{
-			Version: viper.GetString("version"),
-			Host:    viper.GetString("host"),
+			Version:   viper.GetString("version"),
+			Host:      viper.GetString("host"),
+			NbWorkers: viper.GetInt("workers"),
+			NbWrites:  viper.GetInt("jobs"),
 		})
 	},
 }
@@ -38,7 +32,15 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().String("host", "http://127.0.0.1:8080", "pass the host of the server to connect to")
+	clientCmd.Flags().String("host", "127.0.0.1:8080", "pass the host of the server to connect to")
+	clientCmd.Flags().IntP("workers", "w", 2, "how many workers should run")
+	clientCmd.Flags().IntP("jobs", "j", 5, "how many jobs each worker should do")
+
 	viper.BindPFlag("host", clientCmd.Flags().Lookup("host"))
+	viper.BindPFlag("workers", clientCmd.Flags().Lookup("workers"))
+	viper.BindPFlag("jobs", clientCmd.Flags().Lookup("jobs"))
+
 	viper.SetDefault("host", "127.0.0.1:80")
+	viper.SetDefault("workers", 10)
+	viper.SetDefault("jobs", 5)
 }

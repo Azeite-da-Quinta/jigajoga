@@ -80,6 +80,8 @@ func (cl *client) writePump(ctx context.Context, conn *websocket.Conn, wg *sync.
 			return
 
 		case msg, ok := <-cl.inbox:
+			conn.SetWriteDeadline(time.Now().Add(writeDelay))
+
 			// inbox closed
 			if !ok {
 				slog.Debug("inbox was closed from poster. closing conn", "client", cl.ID())
@@ -87,25 +89,20 @@ func (cl *client) writePump(ctx context.Context, conn *websocket.Conn, wg *sync.
 				_ = emitControl(conn, websocket.CloseMessage)
 				return
 			}
-			conn.SetWriteDeadline(time.Now().Add(writeDelay))
 
-			w, err := conn.NextWriter(websocket.TextMessage)
+			err := conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
+				slog.Error("ws: write unexpected error", "err", err)
 				return
 			}
-
-			w.Write(msg)
 
 			// queued remaining messages
-			n := len(cl.inbox)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-cl.inbox)
-			}
-
-			// flush writer
-			if err := w.Close(); err != nil {
-				return
+			for range len(cl.inbox) {
+				err := conn.WriteMessage(websocket.TextMessage, <-cl.inbox)
+				if err != nil {
+					slog.Error("ws: write unexpected error", "err", err)
+					return
+				}
 			}
 		case <-pingT.C:
 			if err := emitControl(conn, websocket.PingMessage); err != nil {
