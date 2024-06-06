@@ -1,9 +1,7 @@
 package ws
 
 import (
-	"bytes"
 	"context"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -30,92 +28,16 @@ type client struct {
 	room  party.PostChan
 }
 
+// read and write
+const wsWorkers = 2
+
 func (cl *client) pump(ctx context.Context, conn *websocket.Conn) {
 	defer conn.Close()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(wsWorkers)
 	go cl.writePump(ctx, conn, &wg)
 	go cl.readPump(ctx, conn, &wg)
 
 	wg.Wait()
-}
-
-func (cl *client) readPump(ctx context.Context, conn *websocket.Conn, wg *sync.WaitGroup /*  rt *Router */) {
-	defer wg.Done()
-
-	conn.SetReadLimit(maxMessageSize)
-	conn.SetReadDeadline(time.Now().Add(pongWait))
-	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("ws: read unexpected close", "err", err)
-			}
-			return
-		}
-		message = bytes.TrimSpace(bytes.ReplaceAll(message, newline, space))
-
-		cl.room <- message
-	}
-}
-
-func (cl *client) writePump(ctx context.Context, conn *websocket.Conn, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	pingT := time.NewTicker(pingPeriod)
-	defer pingT.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case msg, ok := <-cl.inbox:
-			conn.SetWriteDeadline(time.Now().Add(writeDelay))
-
-			// inbox closed
-			if !ok {
-				slog.Debug("inbox was closed from poster. closing conn", "client", cl.ID())
-
-				_ = emitControl(conn, websocket.CloseMessage)
-				return
-			}
-
-			err := conn.WriteMessage(websocket.TextMessage, msg)
-			if err != nil {
-				slog.Error("ws: write unexpected error", "err", err)
-				return
-			}
-
-			// queued remaining messages
-			for range len(cl.inbox) {
-				err := conn.WriteMessage(websocket.TextMessage, <-cl.inbox)
-				if err != nil {
-					slog.Error("ws: write unexpected error", "err", err)
-					return
-				}
-			}
-		case <-pingT.C:
-			if err := emitControl(conn, websocket.PingMessage); err != nil {
-				return
-			}
-		}
-	}
-}
-
-func emitControl(conn *websocket.Conn, messageType int) error {
-	return conn.WriteControl(
-		messageType,
-		nil,
-		time.Now().Add(writeDelay),
-	)
 }

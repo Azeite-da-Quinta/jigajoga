@@ -12,14 +12,17 @@ type Mock struct {
 	name   string
 }
 
+// ID implements Token
 func (m Mock) ID() Identifier {
 	return m.id
 }
 
+// RoomID implements Token
 func (m Mock) RoomID() Identifier {
 	return m.roomID
 }
 
+// Name implements Token
 func (m Mock) Name() string {
 	return m.name
 }
@@ -30,7 +33,11 @@ var counter atomic.Int64
 // with a user named bob and a "unique" id
 // They all end up in the same room
 func MockToken() Token {
-	id := strconv.FormatInt(counter.Add(9), 10)
+	const (
+		incr = 9
+		base = 10
+	)
+	id := strconv.FormatInt(counter.Add(incr), base)
 
 	return Mock{
 		roomID: "the-testing-room",

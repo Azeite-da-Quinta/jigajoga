@@ -1,3 +1,4 @@
+// Package ws is based on gorilla websockets.
 package ws
 
 import (
@@ -20,7 +21,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// Handler creates the ws handler func
+// Handler creates the http handler that upgrades conn to ws
 func (n *Notifier) Handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)

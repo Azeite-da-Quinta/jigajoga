@@ -1,3 +1,4 @@
+// Package cmd holds all game-srv Cobra commands
 package cmd
 
 import (
@@ -24,14 +25,25 @@ Handles communication through websockets`,
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
+// Execute adds all child commands to the root command and sets
+// flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		panic("root cmd failed to execute")
 	}
 }
+
+// flags/configs keys
+const (
+	version = "version"
+)
+
+// default values
+const (
+	defaultVersion = "v0.1.0"
+)
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -40,11 +52,13 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.game-srv.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+		"config file (default is $HOME/.game-srv.yaml)")
 
-	rootCmd.PersistentFlags().StringP("version", "v", "v0.0.0", "defines the version of the app")
-	viper.BindPFlag("version", serveCmd.Flags().Lookup("version"))
-	viper.SetDefault("version", "v0.1.0")
+	rootCmd.PersistentFlags().StringP(version, "v", defaultVersion,
+		"defines the version of the app")
+	viper.BindPFlag(version, serveCmd.Flags().Lookup(version))
+	viper.SetDefault(version, defaultVersion)
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -58,15 +72,7 @@ func initConfig() {
 		// ❗ at this stage, it might not exist
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".game-srv" (without extension).
-		viper.AddConfigPath(home)
-
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".game-srv")
+		viperFromHome()
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -76,6 +82,23 @@ func initConfig() {
 		slog.Info("using config file", "file", viper.ConfigFileUsed())
 	}
 
+	viperWatch()
+}
+
+func viperFromHome() {
+	// Find home directory.
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
+	// Search config in home directory with name
+	//  ".game-srv" (without extension).
+	viper.AddConfigPath(home)
+
+	viper.SetConfigType("yaml")
+	viper.SetConfigName(".game-srv")
+}
+
+func viperWatch() {
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		slog.Info("config file changed", "file", e.Name)
 	})

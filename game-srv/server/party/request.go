@@ -2,6 +2,7 @@ package party
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
 )
@@ -12,30 +13,27 @@ type Request interface {
 }
 
 // Join implements Request
-// contains the client's inbox channel
-// and a reply channel to provide the room's inbox
-type Join struct {
-	user.Token
-	ClientInbox PostChan
-	// Reply in this channel with the room's write channel
-	ReplyRoom chan JoinReply
-	// client's context
-	Cancel context.CancelFunc
+type Join interface {
+	Request
+	Client
 }
 
+// Client in a room
+type Client interface {
+	user.Token
+	Inbox() PostChan
+	Cancel() context.CancelFunc
+	Reply() chan JoinReply
+}
+
+// JoinReply
 type JoinReply struct {
 	RoomInbox PostChan
-}
-
-func (j Join) Get() user.Token {
-	return j.Token
+	Wg        *sync.WaitGroup
 }
 
 // Leave implements Request
-type Leave struct {
+type Leave interface {
+	Request
 	user.Token
-}
-
-func (l Leave) Get() user.Token {
-	return l.Token
 }

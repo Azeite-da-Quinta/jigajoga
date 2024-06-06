@@ -10,22 +10,27 @@ import (
 
 // room handles the multicast of messages between clients
 type room struct {
-	id user.Identifier
 	// map by id of all client's write channels
 	clients map[user.Identifier]client
 	// read incoming requests
 	requests <-chan Request
 	// read incoming messages from clients to the room
 	multicast <-chan []byte
+	id        user.Identifier
+}
+
+type roomChans struct {
+	requests <-chan Request
+	messages <-chan []byte
 }
 
 // newRoom creates a new room with the required fields
-func newRoom(id user.Identifier, requests <-chan Request, messages <-chan []byte) room {
+func newRoom(id user.Identifier, c roomChans) room {
 	return room{
 		id:        id,
 		clients:   make(map[user.Identifier]client),
-		requests:  requests,
-		multicast: messages,
+		requests:  c.requests,
+		multicast: c.messages,
 	}
 }
 
@@ -61,7 +66,8 @@ func (r *room) handleReq(req Request) {
 			"name", v.Name())
 
 		r.clients[v.ID()] = client{
-			inbox: v.ClientInbox,
+			inbox:  v.Inbox(),
+			cancel: v.Cancel(),
 		}
 
 		r.sendToAll([]byte(fmt.Sprintf("%s joined", v.Name())))
@@ -100,8 +106,7 @@ func (r *room) sendToAll(b []byte) {
 // closeAll remaining client-write channels
 func (r *room) closeAll() {
 	for _, cl := range r.clients {
-		cl.cancel()
-		close(cl.inbox)
+		cl.close()
 	}
 
 	clear(r.clients)

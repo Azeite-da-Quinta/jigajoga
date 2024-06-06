@@ -1,3 +1,5 @@
+// Package server is related to the Cobra cmd serve. It
+// contains a basic HTTP and WS server
 package server
 
 import (
@@ -15,11 +17,20 @@ import (
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/ws"
 )
 
+// http config
+const (
+	readTimeout    = 10 * time.Second
+	writeTimeout   = 10 * time.Second
+	maxHeaderBytes = 1 << 20
+)
+
+// Config of serve cmd
 type Config struct {
 	Version string
 	Port    int
 }
 
+// Start the application
 func Start(c Config) {
 	slog.Info("server started",
 		slog.String("version", c.Version),
@@ -31,15 +42,19 @@ func Start(c Config) {
 
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	var ready atomic.Bool
-	s := Serve(ctx, c.Port, &ready)
+	var ready atomic.Bool // TODO better logic
 
-	// setup done
-	ready.Store(true)
+	s := serve(ctx, c.Port, &ready)
+
+	ready.Store(true) // setup done
 
 	// waits for app to interrupt
 	<-ctx.Done()
-	slog.Info("closing: received interrupt")
+	gracefulShutdown(s)
+}
+
+func gracefulShutdown(s *http.Server) {
+	slog.Info("received interrupt")
 
 	ctxTo, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -49,30 +64,22 @@ func Start(c Config) {
 		slog.Error("http shutdown", "error", err)
 	}
 
-	slog.Info("closing: server terminated")
+	slog.Info("server terminated")
 }
 
-func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
-	mux := http.NewServeMux()
-
-	stack := middleware.Stack(
-		middleware.Log,
-	)
-
-	notifier := ws.New(ctx)
-
-	mux.HandleFunc("GET /healthz", healthHandler())
-	mux.HandleFunc("GET /readyz", readyHandler(ready))
-	mux.HandleFunc("GET /ws", notifier.Handler())
+// serve the http server
+func serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
+	handler, notifier := setupRoutes(ctx, ready)
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),
-		Handler:        stack(mux),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		Handler:        handler,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:   writeTimeout,
+		MaxHeaderBytes: maxHeaderBytes,
 		// uses the default slog as log
-		ErrorLog:    slog.NewLogLogger(slog.Default().Handler(), slog.LevelInfo),
+		ErrorLog: slog.NewLogLogger(
+			slog.Default().Handler(), slog.LevelInfo),
 		BaseContext: func(l net.Listener) context.Context { return ctx },
 	}
 
@@ -83,4 +90,23 @@ func Serve(ctx context.Context, port int, ready *atomic.Bool) *http.Server {
 	}()
 
 	return s
+}
+
+func setupRoutes(
+	ctx context.Context,
+	ready *atomic.Bool,
+) (http.Handler, ws.Notifier) {
+	mux := http.NewServeMux()
+
+	notifier := ws.New(ctx)
+
+	mux.HandleFunc("GET /healthz", healthHandler())
+	mux.HandleFunc("GET /readyz", readyHandler(ready))
+	mux.HandleFunc("GET /ws", notifier.Handler())
+
+	stack := middleware.Stack(
+		middleware.Log,
+	)
+
+	return stack(mux), notifier
 }

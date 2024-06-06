@@ -1,9 +1,10 @@
+// Package client to test the server
 package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,9 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/gorilla/websocket"
 )
 
+// Config of Dial
 type Config struct {
 	Version   string
 	Host      string
@@ -21,7 +24,7 @@ type Config struct {
 	NbWrites  int
 }
 
-// Dial
+// Dial connects to the server with N workers doing N jobs (write messages)
 func Dial(conf Config) {
 	ctxS, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -29,44 +32,61 @@ func Dial(conf Config) {
 	ctx, cancel := context.WithTimeout(ctxS, 1*time.Minute)
 	defer cancel()
 
-	if err := httpReady(conf); err != nil {
+	if err := httpReady(ctx, conf); err != nil {
 		return
 	}
 
-	var wg sync.WaitGroup
-	for i := range conf.NbWorkers {
-		wg.Add(1)
-		go runWS(ctx, i,
-			conf.NbWrites, &wg,
-			fmt.Sprintf("ws://%s/ws", conf.Host),
-		)
-	}
+	doJobs(ctx, conf)
 
-	wg.Wait()
 	slog.Info("closing clients")
 	time.Sleep(100 * time.Millisecond)
 }
 
-func runWS(ctx context.Context, id, nbWrites int, wg *sync.WaitGroup, host string) {
+func doJobs(ctx context.Context, conf Config) {
+	var wg sync.WaitGroup
+	wg.Add(conf.NbWorkers)
+
+	wconf := workerConf{
+		url:      urlWS(conf.Host),
+		nbWrites: conf.NbWrites,
+	}
+
+	for i := range conf.NbWorkers {
+		wconf.id = i
+		go runWS(ctx, wconf, &wg)
+	}
+
+	wg.Wait()
+}
+
+func urlWS(host string) string {
+	return fmt.Sprintf("ws://%s/ws", host)
+}
+
+type workerConf struct {
+	url          string
+	id, nbWrites int
+}
+
+func runWS(ctx context.Context, wconf workerConf, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	ws, respws, err := websocket.DefaultDialer.Dial(host, http.Header{})
+	ws, respws, err := websocket.DefaultDialer.Dial(wconf.url, http.Header{})
 	if err != nil {
-		slog.Error("failed to dial ws", "error", err)
+		slog.LogAttrs(ctx, slog.LevelError, "failed to dial ws",
+			slogt.Error(err), slog.String("status", respws.Status))
 		return
 	}
 	defer ws.Close()
-
-	slog.Info("ws response", "status", respws.Status)
 
 	ws.SetCloseHandler(func(code int, text string) error {
 		slog.Info("ws connection closed", "code", code, "reason", text)
 		return nil
 	})
 
-	go write(ctx, ws, id, nbWrites)
-	read(ctx, ws, id)
-	slog.Info("work done", "worker", id)
+	go write(ctx, ws, wconf.id, wconf.nbWrites)
+	read(ctx, ws, wconf.id)
+	slog.Info("work done", "worker", wconf.id)
 }
 
 func read(ctx context.Context, ws *websocket.Conn, id int) {
@@ -103,31 +123,32 @@ func write(ctx context.Context, ws *websocket.Conn, id, nbWrites int) {
 			websocket.TextMessage,
 			[]byte(fmt.Sprintf("olá I'm worker %d sending %d", id, i)))
 		if err != nil {
-			slog.Error("failed to write", "id", id, "error", err)
+			slog.Error("failed to write", slogt.ID(id), slogt.Error(err))
 		}
-
-		// time.Sleep(1 * time.Second)
 	}
 
-	slog.Info("worker done writing", "id", id)
+	slog.Info("worker done writing", slogt.ID(id))
 }
 
-func httpReady(conf Config) error {
-	c := http.Client{Timeout: time.Duration(1) * time.Second}
+func urlReady(conf Config) string {
+	return fmt.Sprintf("http://%s/readyz", conf.Host)
+}
 
-	resp, err := c.Get(fmt.Sprintf("http://%s/readyz", conf.Host))
+func httpReady(ctx context.Context, conf Config) error {
+	c := http.Client{Timeout: time.Second}
+
+	resp, err := c.Get(urlReady(conf))
 	if err != nil {
-		slog.Error("failed to http get ready", "error", err)
+		slog.Error("failed to http get ready", slogt.Error(err))
 		return err
 	}
 	defer resp.Body.Close()
 
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("failed to check ready", "error", err)
-		return err
+	if resp.StatusCode != http.StatusOK {
+		slog.LogAttrs(ctx, slog.LevelError, "status not ok",
+			slog.Int("status", resp.StatusCode))
+		return errors.New("server not ready")
 	}
-	slog.Info("http response", "status", resp.Status, "bytes", string(b))
 
 	return nil
 }

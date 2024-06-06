@@ -19,11 +19,21 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		server.Start(server.Config{
-			Port:    viper.GetInt("port"),
-			Version: viper.GetString("version"),
+			Port:    viper.GetInt(port),
+			Version: viper.GetString(version),
 		})
 	},
 }
+
+// flags/configs keys
+const (
+	port = "port"
+)
+
+// default values
+const (
+	defaultPort = 80
+)
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
@@ -38,7 +48,7 @@ func init() {
 	// is called directly, e.g.:
 	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	serveCmd.Flags().Int32P("port", "p", 8080, "")
-	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
-	viper.SetDefault("port", 80)
+	serveCmd.Flags().Int32P(port, "p", defaultPort, "")
+	viper.BindPFlag(port, serveCmd.Flags().Lookup("port"))
+	viper.SetDefault(port, defaultPort)
 }

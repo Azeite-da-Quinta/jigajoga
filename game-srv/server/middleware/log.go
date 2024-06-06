@@ -24,14 +24,15 @@ func (sw *StatusWriter) WriteHeader(status int) {
 }
 
 // Hijack implements http.Hijacker
-func (w *StatusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	h, ok := w.ResponseWriter.(http.Hijacker)
+func (sw *StatusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := sw.ResponseWriter.(http.Hijacker)
 	if !ok {
 		return nil, nil, errors.New("hijack not supported")
 	}
 	return h.Hijack()
 }
 
+// Log http Handler captures elapsed time and logs to default slog
 func Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
