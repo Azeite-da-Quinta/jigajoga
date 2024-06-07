@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,11 +39,13 @@ func Execute() {
 // flags/configs keys
 const (
 	version = "version"
+	level   = "level"
 )
 
 // default values
 const (
 	defaultVersion = "v0.1.0"
+	defaultLevel   = "INFO"
 )
 
 func init() {
@@ -57,8 +60,13 @@ func init() {
 
 	rootCmd.PersistentFlags().StringP(version, "v", defaultVersion,
 		"defines the version of the app")
-	viper.BindPFlag(version, serveCmd.Flags().Lookup(version))
+	viper.BindPFlag(version, rootCmd.PersistentFlags().Lookup(version))
 	viper.SetDefault(version, defaultVersion)
+
+	rootCmd.PersistentFlags().StringP(level, "l", defaultLevel,
+		"defines the log level of the app")
+	viper.BindPFlag(level, rootCmd.PersistentFlags().Lookup(level))
+	viper.SetDefault(level, defaultLevel)
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -91,16 +99,29 @@ func viperFromHome() {
 	cobra.CheckErr(err)
 
 	// Search config in home directory with name
-	//  ".game-srv" (without extension).
+	//  ".game-srv.yml".
 	viper.AddConfigPath(home)
 
 	viper.SetConfigType("yaml")
-	viper.SetConfigName(".game-srv")
+	viper.SetConfigName(".game-srv.yml")
 }
 
 func viperWatch() {
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		slog.Info("config file changed", "file", e.Name)
+		// Careful not displaying senstive info here
+		setLogLevel()
 	})
 	viper.WatchConfig()
+}
+
+func setLogLevel() {
+	var lvl slog.Level
+	err := lvl.UnmarshalText([]byte(viper.GetString(level)))
+	if err != nil {
+		slog.Error("slog: could not unmarshal level", slogt.Error(err))
+		return
+	}
+
+	slog.SetLogLoggerLevel(lvl)
 }

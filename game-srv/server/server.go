@@ -40,8 +40,6 @@ func Start(c Config) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-
 	var ready atomic.Bool // TODO better logic
 
 	s := serve(ctx, c.Port, &ready)

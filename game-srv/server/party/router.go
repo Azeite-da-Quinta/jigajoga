@@ -3,7 +3,6 @@ package party
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -61,7 +60,6 @@ func (rt *Router) Run(ctx context.Context) {
 
 // closeAll cancel all rooms and close all room writing channels
 func (rt *Router) closeAll() {
-	fmt.Println("calling close all")
 	for _, rttl := range rt.rooms {
 		go rttl.close()
 	}

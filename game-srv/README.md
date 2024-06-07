@@ -11,10 +11,10 @@ This server program is designed to host an online version of an immersive deduct
 go run main.go
 
 # run the client
-go run main.go serve
+go run main.go serve --level=DEBUG --port=8080
 
 # run the client
-go run main.go client
+go run main.go client --host=127.0.0.1:8080
 ```
 
 ### Docker
