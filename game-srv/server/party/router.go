@@ -63,7 +63,7 @@ func (rt *Router) Run(ctx context.Context) {
 func (rt *Router) closeAll() {
 	fmt.Println("calling close all")
 	for _, rttl := range rt.rooms {
-		rttl.close()
+		go rttl.close()
 	}
 
 	clear(rt.rooms)
@@ -120,7 +120,7 @@ func (rt *Router) checkTTL(t time.Time) {
 			// TODO log message with ID
 			slog.Info("room closing. ttl")
 
-			rttl.close()
+			go rttl.close()
 
 			delete(rt.rooms, key)
 		}

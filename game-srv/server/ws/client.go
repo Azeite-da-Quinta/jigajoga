@@ -11,10 +11,8 @@ import (
 )
 
 const (
-	writeDelay     = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = pongWait - 6*time.Second // 90%
-	maxMessageSize = 512
+	writeDelay = 10 * time.Second
+	pingPeriod = pongWait - 6*time.Second // 90%
 )
 
 var (

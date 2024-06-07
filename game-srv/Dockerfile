@@ -10,6 +10,8 @@ RUN go mod download
 RUN go mod verify
 
 COPY ./game-srv ./game-srv
+COPY ./libs ./libs
+
 RUN CGO_ENABLED=0 GOOS=linux \
     go build -o cabrito -ldflags '-w -extldflags "-static"' ./game-srv/main.go
 
@@ -21,10 +23,12 @@ RUN go test -v ./...
 # run stage
 FROM alpine
 
-WORKDIR /
-COPY --from=build-stg /build/cabrito /cabrito
+WORKDIR /app
+
+COPY --from=build-stg /build/cabrito ./cabrito
+COPY --from=build-stg /build/game-srv/dist ./dist
 
 EXPOSE 80
 
 # TODO certificates and stuff
-ENTRYPOINT [ "/cabrito", "serve" ]
+ENTRYPOINT [ "./cabrito", "serve" ]

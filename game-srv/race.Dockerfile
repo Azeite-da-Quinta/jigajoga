@@ -1,3 +1,4 @@
+# TODO not sure it works 100%
 ARG GO_VERSION=1.22.3
 
 FROM golang:${GO_VERSION}

@@ -103,6 +103,7 @@ func setupRoutes(
 	mux.HandleFunc("GET /healthz", healthHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(ready))
 	mux.HandleFunc("GET /ws", notifier.Handler())
+	mux.HandleFunc("GET /client", homeHandler())
 
 	stack := middleware.Stack(
 		middleware.Log,

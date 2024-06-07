@@ -11,6 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	pongWait       = 60 * time.Second
+	maxMessageSize = 512
+)
+
 func (cl *client) readPump(
 	ctx context.Context,
 	conn *websocket.Conn,
