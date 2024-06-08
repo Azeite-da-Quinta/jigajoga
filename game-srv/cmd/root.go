@@ -38,14 +38,17 @@ func Execute() {
 
 // flags/configs keys
 const (
-	version = "version"
-	level   = "level"
+	version   = "version"
+	level     = "level"
+	jwtsecret = "jwtsecret"
 )
 
 // default values
 const (
 	defaultVersion = "v0.1.0"
 	defaultLevel   = "INFO"
+	//revive:disable:line-length-limit
+	defaultSecret = "QSBhbGhlaXJhIMOpIHVtIGVuY2hpZG8gdMOtcGljbyBkYSBjdWxpbsOhcmlhIHBvcnR1Z3Vlc2EgY3Vqb3MgcHJpbmNpcGFpcyBpbmdyZWRpZW50ZXMgc8OjbyBjYXJuZSBkZSBhdmVzLCBww6NvLCBhemVpdGUsIGJhbmhhLCBhbGhvIGUgY29sb3JhdS4="
 )
 
 func init() {
@@ -67,6 +70,11 @@ func init() {
 		"defines the log level of the app")
 	viper.BindPFlag(level, rootCmd.PersistentFlags().Lookup(level))
 	viper.SetDefault(level, defaultLevel)
+
+	rootCmd.PersistentFlags().StringP(jwtsecret, "s", defaultSecret,
+		"defines the version of the app")
+	viper.BindPFlag(jwtsecret, rootCmd.PersistentFlags().Lookup(jwtsecret))
+	viper.SetDefault(jwtsecret, defaultSecret)
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

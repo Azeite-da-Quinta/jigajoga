@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
 // RouterBufSize router's channel size (handles Join/leave requests)

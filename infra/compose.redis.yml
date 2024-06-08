@@ -1,0 +1,8 @@
+name: jigajoga-redis
+
+services:
+  redis:
+    image: "redis/redis-stack:7.2.0-v10"
+    ports:
+      - "6379:6379"
+      - "8001:8001" 

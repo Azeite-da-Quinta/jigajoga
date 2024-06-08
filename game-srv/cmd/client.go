@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// clientCmd represents the client command
 var clientCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Test client to connect to the game-srv",

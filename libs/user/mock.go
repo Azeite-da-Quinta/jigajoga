@@ -7,9 +7,9 @@ import (
 
 // Mock implements the Token interface
 type Mock struct {
+	name   string
 	roomID Identifier
 	id     Identifier
-	name   string
 }
 
 // ID implements Token
@@ -36,12 +36,13 @@ func MockToken() Token {
 	const (
 		incr = 9
 		base = 10
+		room = 1234
 	)
-	id := strconv.FormatInt(counter.Add(incr), base)
+	id := counter.Add(incr)
 
 	return Mock{
-		roomID: "the-testing-room",
+		roomID: room,
 		id:     Identifier(id),
-		name:   "bob" + id,
+		name:   "bob" + strconv.FormatInt(id, base),
 	}
 }

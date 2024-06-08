@@ -3,8 +3,9 @@ package ws
 import (
 	"context"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/party"
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/party"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/token"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,17 +16,23 @@ const (
 )
 
 // New returns a Notifier and runs the party Router
-func New(ctx context.Context) Notifier {
+func New(ctx context.Context, secretKey string) (Notifier, error) {
 	c := make(chan party.Request, party.RouterBufSize)
+
+	b, err := token.Base64ToKey(secretKey)
+	if err != nil {
+		return Notifier{}, err
+	}
 
 	n := Notifier{
 		requests: c,
+		codec:    token.Codec{Key: b},
 	}
 
 	rt := party.NewRouter(c)
 	go rt.Run(ctx)
 
-	return n
+	return n, nil
 }
 
 // Notifier is responsible to link the websocket connection
@@ -33,6 +40,7 @@ func New(ctx context.Context) Notifier {
 type Notifier struct {
 	// Submit requests to Router
 	requests chan<- party.Request
+	codec    token.Codec
 }
 
 // join a client to a room together.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
 // Request incoming

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
 // room handles the multicast of messages between clients

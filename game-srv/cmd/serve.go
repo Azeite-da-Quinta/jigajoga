@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Serves the game endpoint",
@@ -20,10 +19,15 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		setLogLevel()
 
-		server.Start(server.Config{
-			Port:    viper.GetInt(port),
-			Version: viper.GetString(version),
-		})
+		s := srv.Server{
+			Config: srv.Config{
+				Port:      viper.GetInt(port),
+				Version:   viper.GetString(version),
+				JWTSecret: viper.GetString(jwtsecret),
+			},
+		}
+
+		s.Start()
 	},
 }
 

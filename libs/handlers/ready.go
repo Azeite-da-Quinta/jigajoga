@@ -1,18 +1,12 @@
-package server
+package handlers
 
 import (
 	"net/http"
 	"sync/atomic"
 )
 
-func healthHandler() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Healthy"))
-	}
-}
-
-func readyHandler(ready *atomic.Bool) func(http.ResponseWriter, *http.Request) {
+// Ready dummy ready handler
+func Ready(ready *atomic.Bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ready == nil || !ready.Load() {
 			http.Error(w,

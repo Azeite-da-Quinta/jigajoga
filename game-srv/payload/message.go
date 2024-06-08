@@ -1,4 +1,4 @@
-// Package payload
+// Package payload contains the payloads to be exchanged in websockets
 package payload
 
 // Message payload

@@ -3,8 +3,8 @@ package ws
 import (
 	"context"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/party"
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/server/user"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/party"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
 type join struct {

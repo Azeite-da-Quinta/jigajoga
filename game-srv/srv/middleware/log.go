@@ -23,11 +23,14 @@ func (sw *StatusWriter) WriteHeader(status int) {
 	sw.Status = status
 }
 
+// ErrHighjack error high jack not supported
+var ErrHighjack = errors.New("hijack not supported")
+
 // Hijack implements http.Hijacker
 func (sw *StatusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := sw.ResponseWriter.(http.Hijacker)
 	if !ok {
-		return nil, nil, errors.New("hijack not supported")
+		return nil, nil, ErrHighjack
 	}
 	return h.Hijack()
 }
@@ -45,7 +48,7 @@ func Log(next http.Handler) http.Handler {
 
 			next.ServeHTTP(&sw, r)
 
-			slog.Info("http req",
+			slog.Info("http request",
 				slog.Int("status", sw.Status),
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),

@@ -42,18 +42,23 @@ func Dial(conf Config) {
 	time.Sleep(100 * time.Millisecond)
 }
 
+// dev
+const node = 0
+
 func doJobs(ctx context.Context, conf Config) {
 	var wg sync.WaitGroup
 	wg.Add(conf.NbWorkers)
 
-	wconf := workerConf{
-		url:      urlWS(conf.Host),
-		nbWrites: conf.NbWrites,
-	}
+	url := urlWS(conf.Host)
 
 	for i := range conf.NbWorkers {
-		wconf.id = i
-		go runWS(ctx, wconf, &wg)
+		w := worker{
+			url:      url,
+			nbWrites: conf.NbWrites,
+			id:       i,
+		}
+
+		go w.run(ctx, &wg)
 	}
 
 	wg.Wait()
@@ -63,15 +68,15 @@ func urlWS(host string) string {
 	return fmt.Sprintf("ws://%s/ws", host)
 }
 
-type workerConf struct {
+type worker struct {
 	url          string
 	id, nbWrites int
 }
 
-func runWS(ctx context.Context, wconf workerConf, wg *sync.WaitGroup) {
+func (w worker) run(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	ws, respws, err := websocket.DefaultDialer.Dial(wconf.url, http.Header{})
+	ws, respws, err := websocket.DefaultDialer.Dial(w.url, http.Header{})
 	if err != nil {
 		slog.LogAttrs(ctx, slog.LevelError, "failed to dial ws",
 			slogt.Error(err), slog.String("status", respws.Status))
@@ -84,9 +89,9 @@ func runWS(ctx context.Context, wconf workerConf, wg *sync.WaitGroup) {
 		return nil
 	})
 
-	go write(ctx, ws, wconf.id, wconf.nbWrites)
-	read(ctx, ws, wconf.id)
-	slog.Info("work done", "worker", wconf.id)
+	go write(ctx, ws, w.id, w.nbWrites)
+	read(ctx, ws, w.id)
+	slog.Info("work done", "worker", w.id)
 }
 
 func read(ctx context.Context, ws *websocket.Conn, id int) {
