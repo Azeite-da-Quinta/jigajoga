@@ -9,13 +9,10 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Serves the game endpoint",
-	Long: `TODO EDIT
-A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `This is the main command of the app.
+It'll serve an HTTP and websocket server. Players joining
+this server will have their messages forwarded to the correct
+game room based on a JWT token`,
 	Run: func(cmd *cobra.Command, args []string) {
 		setLogLevel()
 

@@ -27,13 +27,14 @@ type Claims struct {
 func (u Data) Claims(now time.Time) Claims {
 	return Claims{
 		Data: u,
+		// TODO check what fields to use
 		RegisteredClaims: jwt.RegisteredClaims{
 			// A usual scenario is to set the expiration
 			// time relative to the current time
 			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 			// IssuedAt:  jwt.NewNumericDate(now),
 			// NotBefore: jwt.NewNumericDate(now),
-			Issuer: "test",
+			Issuer: "jigajoga",
 			// Subject:   "somebody",
 			// ID:        "1",
 			// Audience:  []string{"somebody_else"},

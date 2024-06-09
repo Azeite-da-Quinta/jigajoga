@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
@@ -80,7 +81,7 @@ func (rt *Router) handleReq(ctx context.Context, req Request) {
 
 func (rt *Router) handleJoin(ctx context.Context, req Join) {
 	if room, ok := rt.rooms[req.RoomID()]; !ok {
-		slog.Info("room created", "id", req.RoomID())
+		slog.Info("room created", slogt.Room(int64(req.ID())))
 
 		tr := makeRoom(ctx, req)
 		rt.rooms[req.RoomID()] = tr

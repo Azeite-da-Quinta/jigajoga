@@ -6,9 +6,19 @@ For your culture, jigajoga is pronounced /ʒiɡɐˈʒɔɡɐ/
 
 ## Usage
 
+### Build for local testing
+
+> These commands have to be run from the root of the project
+
+```
+./scripts/build.game-srv.sh
+```
+it will output an executable on ./game-srv/bin
+
 ### Docker compose
 
 ```
 docker compose up --build -d
 ```
 
+Alternative compose files are available in ./infra

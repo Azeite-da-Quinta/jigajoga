@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/middleware"
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/ws"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/handlers"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/middleware"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 )
 

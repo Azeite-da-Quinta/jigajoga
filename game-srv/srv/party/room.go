@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
 
@@ -38,7 +39,7 @@ func newRoom(id user.Identifier, c roomChans) room {
 func (r *room) run(ctx context.Context) {
 	defer func() {
 		slog.Debug("room closing",
-			"room", r.id)
+			slogt.Room(int64(r.id)))
 
 		r.sendToAll([]byte("room closed"))
 		r.closeAll()
@@ -60,10 +61,11 @@ func (r *room) run(ctx context.Context) {
 func (r *room) handleReq(req Request) {
 	switch v := req.(type) {
 	case Join:
-		slog.Debug("client joined",
-			"id", v.ID(),
-			"room", v.RoomID(),
-			"name", v.Name())
+		slog.Debug(
+			"client joined",
+			slogt.PlayerID(int64(v.ID())),
+			slogt.Room(int64(v.RoomID())),
+			slogt.PlayerName(v.Name()))
 
 		r.clients[v.ID()] = client{
 			inbox:  v.Inbox(),
@@ -73,9 +75,9 @@ func (r *room) handleReq(req Request) {
 		r.sendToAll([]byte(fmt.Sprintf("%s joined", v.Name())))
 	case Leave:
 		slog.Debug("client left",
-			"id", v.ID(),
-			"room", v.RoomID(),
-			"name", v.Name())
+			slogt.PlayerID(int64(v.ID())),
+			slogt.Room(int64(v.RoomID())),
+			slogt.PlayerName(v.Name()))
 
 		// closing emit ch
 		if cl, ok := r.clients[v.ID()]; ok {

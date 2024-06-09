@@ -53,11 +53,11 @@ func (w worker) read(ctx context.Context, ws *websocket.Conn) {
 
 		mt, b, err := ws.ReadMessage()
 		if err != nil {
-			slog.Error("ws reading message", "id", w.num, "error", err)
+			slog.Error("ws reading message", slogt.Num(w.num), slogt.Error(err))
 			return
 		}
 
-		slog.Info("ws reading", "id", w.num, "type", mt, "msg", string(b))
+		slog.Info("ws reading", slogt.Num(w.num), "type", mt, "msg", string(b))
 	}
 }
 
@@ -75,9 +75,9 @@ func (w worker) write(ctx context.Context, ws *websocket.Conn) {
 			websocket.TextMessage,
 			[]byte(fmt.Sprintf("olá I'm worker %d sending %d", w.num, i)))
 		if err != nil {
-			slog.Error("failed to write", slogt.ID(w.num), slogt.Error(err))
+			slog.Error("failed to write", slogt.Num(w.num), slogt.Error(err))
 		}
 	}
 
-	slog.Info("worker done writing", slogt.ID(w.num))
+	slog.Info("worker done writing", slogt.Num(w.num))
 }

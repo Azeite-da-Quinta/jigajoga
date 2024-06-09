@@ -26,10 +26,13 @@ type Client interface {
 	Reply() chan JoinReply
 }
 
-// JoinReply
+// JoinReply contains the room's inbox and a WG to signal
+// when a client is done writing in it
+// TODO check if it would make sense to return an interface
 type JoinReply struct {
 	RoomInbox PostChan
-	Wg        *sync.WaitGroup
+	// TODO the Add(1) should be on the side of Router probably
+	Wg *sync.WaitGroup
 }
 
 // Leave implements Request

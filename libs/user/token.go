@@ -18,7 +18,7 @@ type Token interface {
 }
 
 // proof of implementation
-var d Token = Data{}
+var _ Token = Data{}
 
 // Data of a user
 type Data struct {
