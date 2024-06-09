@@ -48,6 +48,17 @@ func FromToken(t token.Data) (Data, error) {
 	return u, nil
 }
 
+// ToToken converts
+func (d Data) ToToken() (t token.Data) {
+	const base = 10
+
+	return token.Data{
+		IDField:     strconv.FormatInt(int64(d.id), base),
+		RoomIDField: strconv.FormatInt(int64(d.room), base),
+		NameField:   d.name,
+	}
+}
+
 // ID implements Token
 func (d Data) ID() Identifier {
 	return d.id

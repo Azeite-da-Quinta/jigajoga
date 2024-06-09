@@ -19,7 +19,7 @@ func Base64ToKey(s string) ([]byte, error) {
 
 // Claims custom claims type for JWT Token
 type Claims struct {
-	Data
+	Data `json:"u"`
 	jwt.RegisteredClaims
 }
 

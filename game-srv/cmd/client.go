@@ -24,6 +24,7 @@ You can pass a few arguments like host, workers and jobs.`,
 			Host:      viper.GetString(host),
 			NbWorkers: viper.GetInt(workers),
 			NbWrites:  viper.GetInt(jobs),
+			JWTSecret: viper.GetString(jwtsecret),
 		})
 	},
 }
