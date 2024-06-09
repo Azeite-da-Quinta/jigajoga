@@ -1,0 +1,14 @@
+name: jigajoga
+
+services:
+  game-srv:
+    build:
+      context: .
+      dockerfile: game-srv/Dockerfile
+    ports:
+      - "8080:80"
+
+  redis:
+    image: "redis/redis-stack-server:7.2.5"
+    ports:
+      - "6379:6379"

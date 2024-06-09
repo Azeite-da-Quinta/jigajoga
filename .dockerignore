@@ -1,0 +1,6 @@
+*/.dockerignore
+*/README.md
+*/Dockerfile
+*/*_test.go
+*/*.exe
+bin/*
