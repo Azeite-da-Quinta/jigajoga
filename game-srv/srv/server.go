@@ -50,6 +50,7 @@ func (s *Server) Start() {
 	slog.Info("server started",
 		slog.String("version", s.Version),
 		slog.Int("port", s.Port),
+		slog.String("mode", s.Mode),
 	)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
