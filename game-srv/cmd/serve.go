@@ -21,6 +21,7 @@ game room based on a JWT token`,
 				Port:      viper.GetInt(port),
 				Version:   viper.GetString(version),
 				JWTSecret: viper.GetString(jwtsecret),
+				Mode:      viper.GetString(mode),
 			},
 		}
 
@@ -31,11 +32,13 @@ game room based on a JWT token`,
 // flags/configs keys
 const (
 	port = "port"
+	mode = "mode"
 )
 
 // default values
 const (
 	defaultPort = 80
+	defaultMode = "single"
 )
 
 func init() {
@@ -51,7 +54,11 @@ func init() {
 	// is called directly, e.g.:
 	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	serveCmd.Flags().Int32P(port, "p", defaultPort, "")
+	serveCmd.Flags().Int32P(port, "p", defaultPort, "the http listening port")
 	viper.BindPFlag(port, serveCmd.Flags().Lookup(port))
 	viper.SetDefault(port, defaultPort)
+
+	serveCmd.Flags().StringP(mode, "m", defaultMode, "the exec mode")
+	viper.BindPFlag(mode, serveCmd.Flags().Lookup(mode))
+	viper.SetDefault(mode, defaultMode)
 }

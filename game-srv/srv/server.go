@@ -29,6 +29,7 @@ const (
 type Config struct {
 	Version   string
 	JWTSecret string
+	Mode      string
 	Port      int
 }
 
