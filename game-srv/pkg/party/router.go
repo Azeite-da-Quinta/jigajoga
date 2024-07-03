@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/pkg/party/event"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/pkg/party/room"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 )
@@ -29,11 +31,11 @@ type PostChan chan<- []byte
 // Router routes messages according to rooms
 type Router struct {
 	rooms    map[user.Identifier]ttlRoom
-	requests <-chan Request
+	requests <-chan event.Query
 }
 
 // NewRouter creates a New party Router
-func NewRouter(c <-chan Request) Router {
+func NewRouter(c <-chan event.Query) Router {
 	return Router{
 		rooms:    make(map[user.Identifier]ttlRoom),
 		requests: c,
@@ -68,31 +70,31 @@ func (rt *Router) closeAll() {
 	clear(rt.rooms)
 }
 
-func (rt *Router) handleReq(ctx context.Context, req Request) {
+func (rt *Router) handleReq(ctx context.Context, req event.Query) {
 	switch val := req.(type) {
-	case Join:
+	case event.Join:
 		rt.handleJoin(ctx, val)
-	case Leave:
+	case event.Leave:
 		rt.handleLeave(val)
 	default:
-		slog.Warn("router handler: request type not handled")
+		slog.Warn("router: request type not handled")
 	}
 }
 
-func (rt *Router) handleJoin(ctx context.Context, req Join) {
-	if room, ok := rt.rooms[req.RoomID()]; !ok {
-		slog.Info("room created", slogt.Room(int64(req.ID())))
+func (rt *Router) handleJoin(ctx context.Context, req event.Join) {
+	if rm, ok := rt.rooms[req.RoomID()]; !ok {
+		slog.Info("router: room created", slogt.Room(int64(req.RoomID())))
 
 		tr := makeRoom(ctx, req)
 		rt.rooms[req.RoomID()] = tr
 
 		forward(req, tr)
 	} else {
-		forward(req, room)
+		forward(req, rm)
 	}
 }
 
-func (rt *Router) handleLeave(req Leave) {
+func (rt *Router) handleLeave(req event.Leave) {
 	rttl, ok := rt.rooms[req.RoomID()]
 	if ok {
 		rttl.requests <- req // forward to room
@@ -100,24 +102,18 @@ func (rt *Router) handleLeave(req Leave) {
 }
 
 // forward join request
-func forward(req Join, tr ttlRoom) {
+func forward(req event.Query, tr ttlRoom) {
 	//revive:disable:add-constant
 	tr.wg.Add(1)
 
 	tr.requests <- req // forward to room
-
-	// reply with the channel this room is listening on
-	req.Reply() <- JoinReply{
-		RoomInbox: tr.messages,
-		Wg:        tr.wg,
-	}
 }
 
 func (rt *Router) checkTTL(t time.Time) {
 	for key, rttl := range rt.rooms {
 		if t.Before(rttl.createdAt.Add(ttl)) {
 			// TODO log message with ID
-			slog.Info("room closing. ttl")
+			slog.Info("router: room closing due to ttl")
 
 			go rttl.close()
 
@@ -128,24 +124,22 @@ func (rt *Router) checkTTL(t time.Time) {
 
 // makeRoom creates and runs a new room. Returns the wrapper
 // that controls cancelation and channels
-func makeRoom(ctx context.Context, jreq Join) ttlRoom {
+func makeRoom(ctx context.Context, jreq event.Join) ttlRoom {
 	ctxRoom, cancel := context.WithCancel(ctx)
-	requests := make(chan Request, roomBufSize)
-	messages := make(chan []byte, messagesBufSize)
+	requests := make(chan event.Query, roomBufSize)
+	// messages := make(chan []byte, messagesBufSize)
 
 	tr := ttlRoom{
 		requests:  requests,
 		createdAt: time.Now(),
 		cancel:    cancel,
-		messages:  messages,
-		wg:        &sync.WaitGroup{},
+		// messages:  messages,
+		wg: &sync.WaitGroup{},
 	}
 
-	r := newRoom(jreq.RoomID(), roomChans{
-		messages: messages,
-		requests: requests,
-	})
-	go r.run(ctxRoom)
+	r := room.New(jreq.RoomID(), requests)
+
+	go r.Run(ctxRoom)
 
 	return tr
 }
@@ -154,7 +148,7 @@ func makeRoom(ctx context.Context, jreq Join) ttlRoom {
 type ttlRoom struct {
 	createdAt time.Time
 	// write only channel to submit requests to running room
-	requests chan<- Request
+	requests chan<- event.Query
 	// cancel room's sub-ctx
 	cancel context.CancelFunc
 	// write only channel to submit messages to running room
@@ -167,5 +161,5 @@ func (tr ttlRoom) close() {
 	close(tr.requests)
 	tr.wg.Wait()
 	// TODO Validate clients cannot write here any longer
-	close(tr.messages)
+	// close(tr.messages)
 }

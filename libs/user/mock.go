@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"strconv"
 	"sync/atomic"
 )
@@ -27,6 +28,11 @@ func (m Mock) Name() string {
 	return m.name
 }
 
+// Serialize implements Token
+func (Mock) Serialize() ([]byte, error) {
+	return []byte("not implemented"), errors.New("not implemented")
+}
+
 var counter atomic.Int64
 
 // MockToken returns a dummy arbitrary Token
@@ -34,7 +40,7 @@ var counter atomic.Int64
 // They all end up in the same room
 func MockToken() Token {
 	const (
-		incr = 9
+		incr = 5
 		base = 10
 		room = 1234
 	)
@@ -43,6 +49,6 @@ func MockToken() Token {
 	return Mock{
 		roomID: room,
 		id:     Identifier(id),
-		name:   "bob" + strconv.FormatInt(id, base),
+		name:   "alice" + strconv.FormatInt(id, base),
 	}
 }

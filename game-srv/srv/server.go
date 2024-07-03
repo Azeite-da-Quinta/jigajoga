@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/ws"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/handlers"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/middleware"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
@@ -33,11 +32,16 @@ type Config struct {
 	Port      int
 }
 
+type closer interface {
+	Close()
+}
+
 // Server wraps an http server and more. It is setup by Config
 type Server struct {
 	httpSrv *http.Server
 	Config
-	ready atomic.Bool
+	closers []closer
+	ready   atomic.Bool
 }
 
 // Start the application
@@ -52,10 +56,10 @@ func (s *Server) Start() {
 
 	err := s.serve(ctx)
 	if err != nil {
-		slog.Error("failed to serve http", slogt.Error(err))
+		slog.Error("server: failed to serve http", slogt.Error(err))
 		panic(err)
 	}
-	s.setReady()
+	s.ready.Store(true) // setup done
 
 	// waits for app to interrupt
 	<-ctx.Done()
@@ -63,22 +67,24 @@ func (s *Server) Start() {
 }
 
 func (s *Server) gracefulShutdown() {
-	slog.Info("received interrupt")
+	slog.Info("server: received interrupt")
+
+	s.ready.Store(false) // server is no longer ready
 
 	ctxTo, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	// > program doesn't exit and waits instead for Shutdown to return.
 	if err := s.httpSrv.Shutdown(ctxTo); err != nil {
-		slog.Error("http shutdown", "error", err)
+		slog.Error("server: http shutdown", "error", err)
 	}
 
-	slog.Info("server terminated")
+	slog.Info("server: terminated")
 }
 
 // serve the http server
 func (s *Server) serve(ctx context.Context) error {
-	handler, notifier, err := setupRoutes(ctx, &s.ready, s.JWTSecret)
+	handler, err := s.setupRoutes(ctx, &s.ready)
 	if err != nil {
 		return err
 	}
@@ -97,38 +103,37 @@ func (s *Server) serve(ctx context.Context) error {
 
 	// 🚀
 	go func() {
-		defer notifier.Close()
-		slog.Error("listen and serve", "error", srv.ListenAndServe())
+		defer func() {
+			for _, c := range s.closers {
+				c.Close()
+			}
+		}()
+		slog.Error("server: listen and serve", "error", srv.ListenAndServe())
 	}()
 
 	s.httpSrv = srv
 	return nil
 }
 
-func (s *Server) setReady() {
-	s.ready.Store(true) // setup done
-}
-
-func setupRoutes(
+func (s *Server) setupRoutes(
 	ctx context.Context,
 	ready *atomic.Bool,
-	secret string,
-) (http.Handler, ws.Notifier, error) {
+) (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	notifier, err := ws.New(ctx, secret)
+	h, err := s.setupWS(ctx)
 	if err != nil {
-		return mux, notifier, err
+		return mux, err
 	}
 
 	mux.HandleFunc("GET /healthz", handlers.Health())
 	mux.HandleFunc("GET /readyz", handlers.Ready(ready))
-	mux.HandleFunc("GET /ws", notifier.Handler())
+	mux.HandleFunc("GET /ws", h.Handler())
 	mux.HandleFunc("GET /client", homeHandler())
 
 	stack := middleware.Stack(
 		middleware.Log,
 	)
 
-	return stack(mux), notifier, nil
+	return stack(mux), nil
 }

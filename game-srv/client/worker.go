@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/libs/envelope"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/gorilla/websocket"
 )
@@ -69,11 +70,27 @@ func (w worker) write(ctx context.Context, ws *websocket.Conn) {
 		default:
 		}
 
+		time.Sleep(200 * time.Millisecond)
+
 		ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
-		err := ws.WriteMessage(
+		e := envelope.Message{
+			To:      "0",
+			Content: fmt.Sprintf("olá I'm worker %d sending %d", w.num, i),
+		}
+
+		b, err := e.Serialize()
+		if err != nil {
+			slog.Error("failed to serialize",
+				slogt.Num(w.num), slogt.Error(err))
+			return
+		}
+
+		err = ws.WriteMessage(
 			websocket.TextMessage,
-			[]byte(fmt.Sprintf("olá I'm worker %d sending %d", w.num, i)))
+			// TODO use the approriate envelope
+			b,
+		)
 		if err != nil {
 			slog.Error("failed to write", slogt.Num(w.num), slogt.Error(err))
 		}

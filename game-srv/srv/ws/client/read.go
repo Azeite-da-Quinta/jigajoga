@@ -1,4 +1,4 @@
-package ws
+package client
 
 import (
 	"bytes"
@@ -7,16 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/pkg/party/comms"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/envelope"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
 	"github.com/gorilla/websocket"
 )
 
-const (
-	pongWait       = 60 * time.Second
-	maxMessageSize = 512
-)
-
-func (cl *client) readPump(
+func (p *IOPump) readPump(
 	ctx context.Context,
 	conn *websocket.Conn,
 	wg *sync.WaitGroup,
@@ -26,21 +23,31 @@ func (cl *client) readPump(
 	setLimits(conn)
 
 	for {
-		message, err := readMessage(conn)
+		b, err := read(conn)
 		if err != nil {
 			return
 		}
 
+		msg, err := parse(b)
+		if err != nil {
+			slog.Error("ws: failed to read envelope from bytes",
+				slogt.Error(err))
+			continue
+		}
+		msg.Sender = int64(p.ID())
+
+		// TODO the default doesn't convince me here
 		select {
 		case <-ctx.Done():
+			slog.Info("ws: read pump done")
 			return
-		case cl.room <- message:
+		case p.room <- msg:
 		default:
 		}
 	}
 }
 
-func readMessage(conn *websocket.Conn) ([]byte, error) {
+func read(conn *websocket.Conn) ([]byte, error) {
 	_, message, err := conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err,
@@ -48,6 +55,7 @@ func readMessage(conn *websocket.Conn) ([]byte, error) {
 			websocket.CloseAbnormalClosure) {
 			slog.Error("ws: read unexpected close", slogt.Error(err))
 		}
+
 		return nil, err
 	}
 
@@ -61,4 +69,13 @@ func setLimits(conn *websocket.Conn) {
 		conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
+}
+
+func parse(b []byte) (comms.Message, error) {
+	e, err := envelope.FromBytes(b)
+	if err != nil {
+		return comms.Message{}, err
+	}
+
+	return comms.FromEnvelope(e)
 }

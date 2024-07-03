@@ -2,6 +2,7 @@
 package user
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/Azeite-da-Quinta/jigajoga/libs/token"
@@ -15,6 +16,7 @@ type Token interface {
 	ID() Identifier
 	RoomID() Identifier
 	Name() string
+	Serialize() ([]byte, error)
 }
 
 // proof of implementation
@@ -48,8 +50,8 @@ func FromToken(t token.Data) (Data, error) {
 	return u, nil
 }
 
-// ToToken converts
-func (d Data) ToToken() (t token.Data) {
+// Token converts
+func (d Data) Token() (t token.Data) {
 	const base = 10
 
 	return token.Data{
@@ -57,6 +59,22 @@ func (d Data) ToToken() (t token.Data) {
 		RoomIDField: strconv.FormatInt(int64(d.room), base),
 		NameField:   d.name,
 	}
+}
+
+// Deserialize returns
+func Deserialize(data []byte) (Token, error) {
+	var t token.Data
+	err := json.Unmarshal(data, &t)
+	if err != nil {
+		return Data{}, err
+	}
+
+	return FromToken(t)
+}
+
+// Serialize returns json bytes
+func (d Data) Serialize() ([]byte, error) {
+	return json.Marshal(d.Token())
 }
 
 // ID implements Token

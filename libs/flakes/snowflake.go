@@ -5,6 +5,13 @@ import (
 	"github.com/bwmarrin/snowflake"
 )
 
+func init() {
+	// based on discord epoch because it's handy
+	// for the existing convert tools
+	const epoch = 1420070400000
+	snowflake.Epoch = epoch
+}
+
 // Generator wrapper around snowflake
 type Generator struct {
 	node *snowflake.Node

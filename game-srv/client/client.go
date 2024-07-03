@@ -35,7 +35,8 @@ func Dial(conf Config) {
 		return
 	}
 
-	doJobs(ctx, conf)
+	go doJobs(ctx, conf)
+	<-ctx.Done()
 
 	slog.Info("closing clients")
 	time.Sleep(100 * time.Millisecond)
@@ -63,11 +64,24 @@ func doJobs(ctx context.Context, conf Config) {
 	if err != nil {
 		panic(err)
 	}
-	room := fac.NewRoom()
+	// we alternate clients between two rooms
+	var (
+		room1 = fac.NewRoom()
+		room2 = fac.NewRoom()
+	)
+
+	fmt.Println(room1, room2)
+	time.Sleep(3 * time.Second)
 
 	for i := range conf.NbWorkers {
-		claims := fac.NewUser(mockName(i), room).
-			ToToken().
+		roomID := room1
+		//revive:disable:add-constant
+		if i%2 == 0 {
+			roomID = room2
+		}
+
+		claims := fac.NewUser(mockName(i), roomID).
+			Token().
 			Claims(time.Now())
 
 		jwt, err := cod.Encode(claims)

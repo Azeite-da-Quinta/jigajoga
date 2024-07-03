@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/pkg/party/event"
+	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/ws/client"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/token"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 	"github.com/gorilla/websocket"
 )
@@ -22,10 +25,23 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+// New returns a Notifier and runs the party Router
+func New(n Notifier, secretKey string) (Handler, error) {
+	b, err := token.Base64ToKey(secretKey)
+	if err != nil {
+		return Handler{}, err
+	}
+
+	return Handler{
+		codec:    token.Codec{Key: b},
+		Notifier: n,
+	}, nil
+}
+
 // Handler creates the http handler that upgrades conn to ws
-func (n *Notifier) Handler() func(http.ResponseWriter, *http.Request) {
+func (h *Handler) Handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		t, err := n.validateToken(r)
+		t, err := h.validateToken(r)
 		if err != nil {
 			// we could distinguish between Forbidden
 			// vs Unauthorized 🤷
@@ -42,15 +58,29 @@ func (n *Notifier) Handler() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		// client will close conn
-		n.join(r.Context(), conn, t)
+		cl := client.New(t)
+
+		h.Notify(t, func(reply <-chan event.Reply) {
+			cl.Pump(r.Context(), conn, reply)
+		})
 	}
 }
 
-func (n *Notifier) validateToken(r *http.Request) (user.Token, error) {
+// Handler builder
+type Handler struct {
+	Notifier
+	codec token.Codec
+}
+
+// Notifier notifies the arrival of a new WS client
+type Notifier interface {
+	Notify(user.Token, func(reply <-chan event.Reply))
+}
+
+func (h *Handler) validateToken(r *http.Request) (user.Token, error) {
 	const prefix = "Bearer "
 
-	token, err := n.codec.Decode(
+	tok, err := h.codec.Decode(
 		strings.TrimPrefix(
 			r.Header.Get("Authorization"),
 			prefix),
@@ -59,5 +89,5 @@ func (n *Notifier) validateToken(r *http.Request) (user.Token, error) {
 		return nil, err
 	}
 
-	return user.FromToken(token)
+	return user.FromToken(tok)
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Azeite-da-Quinta/jigajoga/libs/slogt"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/token"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -47,8 +48,7 @@ const (
 const (
 	defaultVersion = "v0.1.0"
 	defaultLevel   = "INFO"
-	//revive:disable:line-length-limit
-	defaultSecret = "QSBhbGhlaXJhIMOpIHVtIGVuY2hpZG8gdMOtcGljbyBkYSBjdWxpbsOhcmlhIHBvcnR1Z3Vlc2EgY3Vqb3MgcHJpbmNpcGFpcyBpbmdyZWRpZW50ZXMgc8OjbyBjYXJuZSBkZSBhdmVzLCBww6NvLCBhemVpdGUsIGJhbmhhLCBhbGhvIGUgY29sb3JhdS4="
+	defaultSecret  = token.DefaultSecret
 )
 
 func init() {
