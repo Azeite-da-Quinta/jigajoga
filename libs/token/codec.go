@@ -9,12 +9,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-//revive:disable:line-length-limit
-
-// DefaultSecret in string base64 format
-const DefaultSecret = "QSBhbGhlaXJhIMOpIHVtIGVuY2hpZG8gdMOtcGljbyBkYSBjdWxpbsOhcmlhIHBvcnR1Z3Vlc2EgY3Vqb3MgcHJpbmNpcGFpcyBpbmdyZWRpZW50ZXMgc8OjbyBjYXJuZSBkZSBhdmVzLCBww6NvLCBhemVpdGUsIGJhbmhhLCBhbGhvIGUgY29sb3JhdS4="
-
-//revive:enable:line-length-limit
+// DefaultSecret in string base64 format.
+// THIS MUST BE OVERRIDE. It's weak on purpose so we don't forget
+const DefaultSecret = "QWxoZWlyYXM="
 
 // ErrBadClaims if the cast failed
 var ErrBadClaims = errors.New("failed to get claims")
