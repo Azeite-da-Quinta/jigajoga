@@ -48,7 +48,7 @@ func (h *Handler) Handler() func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			http.Error(w,
 				http.StatusText(http.StatusUnauthorized),
-				http.StatusForbidden,
+				http.StatusUnauthorized,
 			)
 			return
 		}
