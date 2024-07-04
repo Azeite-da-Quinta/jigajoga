@@ -22,7 +22,8 @@ func (w worker) run(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	header := http.Header{}
-	header.Add("Authorization", fmt.Sprintf("Bearer %v", w.jwt))
+	// Note: changed from Authorization header since it's not possible in regular web browsers
+	header.Add("Sec-WebSocket-Protocol", fmt.Sprintf("base64url.bearer.authorization.%s, %s", w.jwt, envelope.Subprotocol))
 
 	ws, respws, err := websocket.DefaultDialer.Dial(w.url, header)
 	if err != nil {
@@ -31,6 +32,11 @@ func (w worker) run(ctx context.Context, wg *sync.WaitGroup) {
 		return
 	}
 	defer ws.Close()
+
+	if respws.Header.Get("Sec-Websocket-Protocol") != envelope.Subprotocol {
+		slog.Error("wrong ws subprotocol")
+		return
+	}
 
 	ws.SetCloseHandler(func(code int, text string) error {
 		slog.Info("ws connection closed", "code", code, "reason", text)

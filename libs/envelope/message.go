@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// Subprotocol is the ws subprotocol to use
+const Subprotocol = "v0.jigajoga.json"
+
 const topic = "messages"
 
 // IsTopic

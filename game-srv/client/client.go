@@ -70,7 +70,7 @@ func doJobs(ctx context.Context, conf Config) {
 		room2 = fac.NewRoom()
 	)
 
-	fmt.Println(room1, room2)
+	slog.Info("generated two arbitrary rooms", "r1", room1, "r2", room2)
 	time.Sleep(3 * time.Second)
 
 	for i := range conf.NbWorkers {

@@ -2,12 +2,14 @@
 package ws
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/pkg/party/event"
 	"github.com/Azeite-da-Quinta/jigajoga/game-srv/srv/ws/client"
+	"github.com/Azeite-da-Quinta/jigajoga/libs/envelope"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/token"
 	"github.com/Azeite-da-Quinta/jigajoga/libs/user"
 	"github.com/gorilla/websocket"
@@ -21,6 +23,7 @@ const (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  readBufSize,
 	WriteBufferSize: writeBufSize,
+	Subprotocols:    []string{envelope.Subprotocol},
 	// TODO
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
@@ -41,10 +44,17 @@ func New(n Notifier, secretKey string) (Handler, error) {
 // Handler creates the http handler that upgrades conn to ws
 func (h *Handler) Handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		t, err := h.validateToken(r)
+		token, err := getToken(r)
 		if err != nil {
-			// we could distinguish between Forbidden
-			// vs Unauthorized 🤷
+			http.Error(w,
+				http.StatusText(http.StatusUnauthorized),
+				http.StatusForbidden,
+			)
+			return
+		}
+
+		t, err := h.validateToken(token)
+		if err != nil {
 			http.Error(w,
 				http.StatusText(http.StatusForbidden),
 				http.StatusForbidden,
@@ -77,14 +87,20 @@ type Notifier interface {
 	Notify(user.Token, func(reply <-chan event.Reply))
 }
 
-func (h *Handler) validateToken(r *http.Request) (user.Token, error) {
-	const prefix = "Bearer "
+func getToken(r *http.Request) (string, error) {
+	const prefix = "base64url.bearer.authorization."
 
-	tok, err := h.codec.Decode(
-		strings.TrimPrefix(
-			r.Header.Get("Authorization"),
-			prefix),
-	)
+	for _, sub := range websocket.Subprotocols(r) {
+		if strings.HasPrefix(sub, prefix) {
+			return strings.TrimPrefix(sub, prefix), nil
+		}
+	}
+
+	return "", errors.New("bearer token not found")
+}
+
+func (h *Handler) validateToken(t string) (user.Token, error) {
+	tok, err := h.codec.Decode(t)
 	if err != nil {
 		return nil, err
 	}
