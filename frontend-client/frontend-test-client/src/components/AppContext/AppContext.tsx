@@ -1,4 +1,5 @@
 import {useEffect, createContext ,useState} from "react";
+import auth_header from "../../utils/token.ts"
 
 export const AppContext : React.Context<object> = createContext(
     {
@@ -43,6 +44,8 @@ const AppContextProvider = ({children} : Props) => {
         handleLogs(logs => [...logs,log])
     }
 
+    console.log(auth_header)
+
     /*
      let disconnect = () => {
         /* Mocked Behaviour for interface
@@ -80,7 +83,7 @@ const AppContextProvider = ({children} : Props) => {
             const ws = new WebSocket(
                 url,
                 [
-                    'base64url.bearer.authorization.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1Ijp7InIiOiIxMjM0IiwiaWQiOiIxIiwibiI6ImJvYiJ9LCJpc3MiOiJqaWdham9nYSIsImV4cCI6MTcyMDIyMTQ0OH0.8vdhWY8tljQ7DIXQL9DCKiUUpXZ3mX49A5wzTn6r9xU',
+                    auth_header,
                     "v0.jigajoga.json"]);
 
             handleFuncs({

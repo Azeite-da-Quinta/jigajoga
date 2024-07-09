@@ -65,6 +65,9 @@ const ConnectionForm = () => {
                 </form>
             </span>
             <span>
+
+            </span>
+            <span>
                 {connStatus()}
             </span>
         </nav>
