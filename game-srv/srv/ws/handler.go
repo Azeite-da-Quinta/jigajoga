@@ -46,6 +46,8 @@ func (h *Handler) Handler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token, err := getToken(r)
 		if err != nil {
+			slog.Info("ws: failed to retrieve token", slog.String("err", err.Error()))
+
 			http.Error(w,
 				http.StatusText(http.StatusUnauthorized),
 				http.StatusUnauthorized,
@@ -55,6 +57,8 @@ func (h *Handler) Handler() func(http.ResponseWriter, *http.Request) {
 
 		t, err := h.validateToken(token)
 		if err != nil {
+			slog.Info("ws: rejected token", slog.String("err", err.Error()))
+
 			http.Error(w,
 				http.StatusText(http.StatusForbidden),
 				http.StatusForbidden,
