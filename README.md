@@ -13,7 +13,7 @@ For your culture, jigajoga is pronounced /ʒiɡɐˈʒɔɡɐ/
 ```
 ./scripts/build.game-srv.sh
 ```
-it will output an executable on ./game-srv/bin
+it will output an executable on ./svc/game-srv/bin
 
 ### Docker compose
 
