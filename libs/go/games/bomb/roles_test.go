@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
+//revive:disable:add-constant
 func Test_genRoles(t *testing.T) {
 	type args struct {
 		count int

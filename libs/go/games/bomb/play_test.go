@@ -2,6 +2,7 @@ package bomb
 
 import "testing"
 
+//revive:disable
 func TestGame_Play(t *testing.T) {
 	players := []int64{11, 12, 13, 14}
 
@@ -30,6 +31,7 @@ func TestGame_Play(t *testing.T) {
 		{
 			name: "pick a card",
 			fields: fields{
+				state:   Running,
 				ids:     players,
 				cards:   []Card{},
 				playing: players[0],
@@ -40,7 +42,8 @@ func TestGame_Play(t *testing.T) {
 					Target: players[1],
 				},
 			},
-			wantErr: false,
+			wantErr:   false,
+			wantState: Running,
 		},
 	}
 	for _, tt := range tests {
@@ -57,12 +60,15 @@ func TestGame_Play(t *testing.T) {
 				winner:   tt.fields.winner,
 			}
 
-			if err := g.Play(tt.args.id, tt.args.m); (err != nil) != tt.wantErr {
-				t.Errorf("Game.Play() error = %v, wantErr %v", err, tt.wantErr)
+			err := g.Play(tt.args.id, tt.args.m)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Game.Play() error = %v, wantErr %v",
+					err, tt.wantErr)
 			}
 
 			if g.state != tt.wantState {
-				t.Errorf("Game.Play() error = %v, want %v", g.state, tt.wantState)
+				t.Errorf("Game.Play() state = %v, want %v",
+					g.state, tt.wantState)
 			}
 		})
 	}

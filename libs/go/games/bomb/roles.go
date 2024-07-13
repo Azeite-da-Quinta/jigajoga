@@ -38,6 +38,7 @@ func genRoles(count int) []Role {
 }
 
 func getRolesCount(count int) (heroes, vilains int) {
+	//revive:disable:add-constant
 	switch count {
 	case 4, 5:
 		heroes = 3

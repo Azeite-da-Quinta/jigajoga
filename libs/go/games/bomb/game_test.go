@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+//revive:disable:add-constant
 func Test(t *testing.T) {
 	players := []int64{11, 12, 13, 14}
 

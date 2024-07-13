@@ -15,7 +15,26 @@ const (
 	Bomb
 )
 
-func (g *Game) drawCard(idx int) {}
+func (g *Game) drawCard(idx, target int) (Card, error) {
+	num := cardsPerRound(int(g.round))
+
+	if target < 0 ||
+		target >= num {
+		return Unkown, ErrCardNotFound
+	}
+
+	begin := idx * num
+	if begin+target >= len(g.cards) {
+		return Unkown, ErrCardNotFound
+	}
+
+	c := g.cards[begin+target]
+	if c == Unkown {
+		return c, ErrCardNotFound
+	}
+
+	return c, nil
+}
 
 // getPlayerCards returns the cards a player has
 func (g Game) getPlayerCards(idx int) []Card {
@@ -58,6 +77,7 @@ func genCards(count int) []Card {
 // initialCardsCount returns how many of each card type
 // the deck should start with.
 func initialCardsCount(count int) (safe, defuse, bomb int) {
+	//revive:disable:add-constant
 	bomb = 1
 
 	switch count {

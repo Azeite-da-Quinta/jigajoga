@@ -15,6 +15,7 @@ const (
 	PlayerNotFound
 	TargetNotFound
 	NotYourTurn
+	CardNotFound
 )
 
 // game errors
@@ -46,6 +47,10 @@ var (
 	ErrNotYourTurn = Error{
 		reason:  "not your turn",
 		ErrCode: NotYourTurn,
+	}
+	ErrCardNotFound = Error{
+		reason:  "card not found",
+		ErrCode: CardNotFound,
 	}
 )
 
