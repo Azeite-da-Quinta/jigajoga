@@ -148,3 +148,87 @@ func TestGame_drawCard(t *testing.T) {
 		})
 	}
 }
+
+func TestGame_nextRoundCards(t *testing.T) {
+	type fields struct {
+		cards []Card
+		ids   []int64
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		wantCards []Card
+	}{
+		{
+			name: "round 0 to 1, 20 to 16 cards",
+			fields: fields{
+				ids: testPlayerIDs,
+				cards: []Card{
+					Bomb, Drawn, Defuse, Defuse, Defuse,
+					Safe, Drawn, Safe, Safe, Safe,
+					Safe, Drawn, Safe, Safe, Safe,
+					Safe, Drawn, Safe, Safe, Safe,
+				},
+			},
+			wantCards: []Card{
+				Bomb, Defuse, Defuse, Defuse,
+				Safe, Safe, Safe, Safe,
+				Safe, Safe, Safe, Safe,
+				Safe, Safe, Safe, Safe,
+			},
+		},
+		{
+			name: "round 1 to 2, 16 to 12 cards",
+			fields: fields{
+				ids: testPlayerIDs,
+				cards: []Card{
+					Bomb, Drawn, Defuse, Defuse,
+					Safe, Drawn, Safe, Safe,
+					Safe, Drawn, Safe, Safe,
+					Safe, Drawn, Safe, Safe,
+				},
+			},
+			wantCards: []Card{
+				Bomb, Defuse, Defuse,
+				Safe, Safe, Safe,
+				Safe, Safe, Safe,
+				Safe, Safe, Safe,
+			},
+		},
+		{
+			name: "round 2 to 3, 12 to 8 cards",
+			fields: fields{
+				ids: testPlayerIDs,
+				cards: []Card{
+					Bomb, Drawn, Defuse,
+					Safe, Drawn, Safe,
+					Safe, Drawn, Safe,
+					Safe, Drawn, Safe,
+				},
+			},
+			wantCards: []Card{
+				Bomb, Defuse,
+				Safe, Safe,
+				Safe, Safe,
+				Safe, Safe,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Game{
+				cards: tt.fields.cards,
+				ids:   tt.fields.ids,
+			}
+			g.setNextRoundCards()
+
+			if !cmp.Equal(g.cards, tt.wantCards, cmpopts.SortSlices(
+				func(a, b Card) bool {
+					return a < b
+				},
+			)) {
+				t.Errorf("genCards() = %v", g.cards)
+			}
+		})
+	}
+}

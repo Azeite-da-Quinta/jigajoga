@@ -2,6 +2,7 @@ package bomb
 
 import (
 	"math/rand"
+	"slices"
 )
 
 // Card type
@@ -10,28 +11,38 @@ type Card uint8
 // enum kinds of cards
 const (
 	Unkown Card = iota
+	// No effect card
 	Safe
+	// Victory condition
 	Defuse
+	// Game over condition
 	Bomb
+	// Card already drawn another round
+	Drawn
 )
 
-func (g *Game) drawCard(idx, target int) (Card, error) {
+func (g *Game) drawCard(playerIdx, cardIdx int) (Card, error) {
 	num := cardsPerRound(int(g.round))
 
-	if target < 0 ||
-		target >= num {
+	if cardIdx < 0 ||
+		cardIdx >= num {
 		return Unkown, ErrCardNotFound
 	}
 
-	begin := idx * num
-	if begin+target >= len(g.cards) {
+	begin := playerIdx * num
+	if begin+cardIdx >= len(g.cards) {
 		return Unkown, ErrCardNotFound
 	}
 
-	c := g.cards[begin+target]
-	if c == Unkown {
+	c := g.cards[begin+cardIdx]
+	switch c {
+	case Unkown, Drawn:
 		return c, ErrCardNotFound
 	}
+
+	// We flag the card so it's not drawn
+	// next turns
+	g.cards[begin+cardIdx] = Drawn
 
 	return c, nil
 }
@@ -99,4 +110,16 @@ func initialCardsCount(count int) (safe, defuse, bomb int) {
 	}
 
 	return safe, defuse, bomb
+}
+
+func (g *Game) setNextRoundCards() {
+	revealedCards := g.playersCount()
+
+	slices.Sort(g.cards)
+
+	g.cards = g.cards[:len(g.cards)-revealedCards]
+
+	rand.Shuffle(len(g.cards), func(i, j int) {
+		g.cards[i], g.cards[j] = g.cards[j], g.cards[i]
+	})
 }

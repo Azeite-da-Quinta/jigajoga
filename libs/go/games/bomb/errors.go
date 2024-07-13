@@ -16,6 +16,8 @@ const (
 	TargetNotFound
 	NotYourTurn
 	CardNotFound
+	CannotDrawSelf // cannot draw from your own hand
+	// TODO ^
 )
 
 // game errors

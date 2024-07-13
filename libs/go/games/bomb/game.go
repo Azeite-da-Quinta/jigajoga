@@ -15,16 +15,16 @@ func New() Game {
 
 // Game contains the state
 type Game struct {
-	cards   []Card
-	roles   []Role
-	readies []bool
-	ids     []int64
-	playing int64 // id of the player currently playing
-	round   uint8 // current round
-	// turn     uint8 // current turn
-	revealed uint8 // cards revealed this round
-	state    StateKind
-	winner   Role
+	cards        []Card
+	roles        []Role
+	readies      []bool
+	ids          []int64
+	playing      int64 // id of the player currently playing
+	round        uint8 // current round
+	revealed     uint8 // cards revealed this round / turn counter
+	defusesFound uint8 // win condition of Heroes
+	state        StateKind
+	winner       Role
 }
 
 const missing = -1

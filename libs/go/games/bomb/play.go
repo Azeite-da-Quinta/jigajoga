@@ -2,8 +2,11 @@ package bomb
 
 // Move is a play action
 type Move struct {
-	Target int64
+	Target     int64
+	CardToDraw uint8
 }
+
+// TODO check that player doesn't draw from himself
 
 // Play a move
 func (g *Game) Play(id int64, m Move) error {
@@ -16,37 +19,56 @@ func (g *Game) Play(id int64, m Move) error {
 		return ErrNotYourTurn
 	}
 
+	t := g.getPlayerIdx(m.Target)
+
 	if g.getPlayerIdx(id) == missing ||
-		g.getPlayerIdx(m.Target) == missing {
+		t == missing {
 		return ErrPlayerNotFound
 	}
 
-	// TODO check if defuse
+	c, err := g.drawCard(t, int(m.CardToDraw))
+	if err != nil {
+		return err
+	}
 
-	// TODO check if bomb
+	if c == Bomb {
+		g.state = Over
+		g.winner = Vilain
+		return nil
+	}
 
-	if areAllDefuseFound(g.playersCount(), 0) {
+	if c == Defuse {
+		g.defusesFound++
+	}
+
+	if areAllDefuseFound(g.playersCount(), int(g.defusesFound)) {
 		g.state = Over
 		g.winner = Hero
 		return nil
 	}
 
-	g.nextTurn(m.Target)
+	isNextRound := g.nextTurn(m.Target)
+	if isNextRound {
+		g.setNextRoundCards()
+	}
 
 	return nil
 }
 
-func (g *Game) nextTurn(id int64) {
+func (g *Game) nextTurn(id int64) bool {
 	g.revealed++
+	g.playing = id
 
 	if isRoundEnd(g.playersCount(), int(g.revealed)) {
 		g.nextRound()
+		return true
 	}
 
-	g.playing = id //
+	return false
 }
 
 func (g *Game) nextRound() {
+	g.revealed = 0
 	g.round++
 
 	if areRoundsOver(g.round) {

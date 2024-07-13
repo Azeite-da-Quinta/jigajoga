@@ -29,11 +29,11 @@ func cardsPerRound(round int) int {
 }
 
 func isRoundEnd(playersCount, cardsDealt int) bool {
-	return playersCount >= cardsDealt
+	return cardsDealt >= playersCount
 }
 
 func areRoundsOver(round uint8) bool {
-	return round > maxRounds
+	return round > maxRounds-1
 }
 
 func areAllDefuseFound(playersCount, defuse int) bool {

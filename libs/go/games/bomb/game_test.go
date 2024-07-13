@@ -6,21 +6,19 @@ import (
 
 //revive:disable:add-constant
 func Test(t *testing.T) {
-	players := []int64{11, 12, 13, 14}
-
 	g := New()
 
-	for _, id := range players {
+	for _, id := range testPlayerIDs {
 		g.Join(id)
 	}
 
-	if len(g.ids) != len(players) {
+	if len(g.ids) != len(testPlayerIDs) {
 		t.Error("players missing")
 		return
 	}
 
 	for i := range 2 {
-		g.SetReady(players[i], true)
+		g.SetReady(testPlayerIDs[i], true)
 	}
 
 	if g.state != Lobby {
@@ -29,7 +27,7 @@ func Test(t *testing.T) {
 	}
 
 	for i := 2; i < 4; i++ {
-		g.SetReady(players[i], true)
+		g.SetReady(testPlayerIDs[i], true)
 	}
 
 	if g.state != Running {
