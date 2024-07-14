@@ -1,6 +1,7 @@
 package bomb
 
 import (
+	"math/rand"
 	"slices"
 )
 
@@ -87,7 +88,9 @@ func (g *Game) start() {
 	g.roles = genRoles(count)
 	g.cards = genCards(count)
 
-	// TODO define random starting player
+	// sets random starting player
+	idx := rand.Intn(g.playersCount())
+	g.playing = g.ids[idx]
 }
 
 func (g Game) playersCount() int {

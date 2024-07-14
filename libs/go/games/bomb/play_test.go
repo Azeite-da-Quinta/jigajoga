@@ -235,3 +235,103 @@ func TestGame_nextTurn(t *testing.T) {
 		})
 	}
 }
+
+func TestGame_checkPreconditions(t *testing.T) {
+	type fields struct {
+		cards        []Card
+		roles        []Role
+		readies      []bool
+		ids          []int64
+		playing      int64
+		round        uint8
+		revealed     uint8
+		defusesFound uint8
+		state        StateKind
+		winner       Role
+	}
+	type args struct {
+		id int64
+		m  Move
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "party in lobby",
+			fields: fields{
+				state: Lobby,
+			},
+			wantErr: true,
+		},
+		{
+			name: "party over",
+			fields: fields{
+				state: Over,
+			},
+			wantErr: true,
+		},
+		{
+			name: "not your turn",
+			fields: fields{
+				state:   Running,
+				playing: testPlayerIDs[0],
+			},
+			args: args{
+				id: testPlayerIDs[1],
+			},
+			wantErr: true,
+		},
+		{
+			name: "drawing from his own hand",
+			fields: fields{
+				state:   Running,
+				playing: testPlayerIDs[0],
+			},
+			args: args{
+				id: testPlayerIDs[0],
+				m:  Move{Target: testPlayerIDs[0]},
+			},
+			wantErr: true,
+		},
+		{
+			name: "target doesn't exist",
+			fields: fields{
+				state:   Running,
+				playing: testPlayerIDs[0],
+			},
+			args: args{
+				id: testPlayerIDs[0],
+				m:  Move{Target: 1005},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := Game{
+				cards:        tt.fields.cards,
+				roles:        tt.fields.roles,
+				readies:      tt.fields.readies,
+				ids:          tt.fields.ids,
+				playing:      tt.fields.playing,
+				round:        tt.fields.round,
+				revealed:     tt.fields.revealed,
+				defusesFound: tt.fields.defusesFound,
+				state:        tt.fields.state,
+				winner:       tt.fields.winner,
+			}
+			got, err := g.checkPreconditions(tt.args.id, tt.args.m)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Game.checkPreconditions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Game.checkPreconditions() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

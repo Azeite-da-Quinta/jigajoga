@@ -11,13 +11,13 @@ const (
 	MinPlayers
 	PartyNotReady
 	PartyAlreadyStarted
+	PartyOver
 	TooManyPlayers
 	PlayerNotFound
 	TargetNotFound
 	NotYourTurn
 	CardNotFound
 	CannotDrawSelf // cannot draw from your own hand
-	// TODO ^
 )
 
 // game errors
@@ -33,6 +33,10 @@ var (
 	ErrPartyAlreadyStarted = Error{
 		reason:  "party already started",
 		ErrCode: PartyAlreadyStarted,
+	}
+	ErrPartyOver = Error{
+		reason:  "game already over",
+		ErrCode: PartyOver,
 	}
 	ErrTooManyPlayers = Error{
 		reason:  "party is already full",
@@ -53,6 +57,10 @@ var (
 	ErrCardNotFound = Error{
 		reason:  "card not found",
 		ErrCode: CardNotFound,
+	}
+	ErrCannotDrawSelf = Error{
+		reason:  "cannot draw from own hand",
+		ErrCode: CannotDrawSelf,
 	}
 )
 

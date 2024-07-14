@@ -6,45 +6,32 @@ type Move struct {
 	CardToDraw uint8
 }
 
-// TODO check that player doesn't draw from himself
-
 // Play a move
 func (g *Game) Play(id int64, m Move) error {
-	if g.state == Lobby {
-		return ErrPartyNotReady
-	}
-	// TODO check party over all well
-
-	if g.playing != id {
-		return ErrNotYourTurn
-	}
-
-	t := g.getPlayerIdx(m.Target)
-
-	if g.getPlayerIdx(id) == missing ||
-		t == missing {
-		return ErrPlayerNotFound
-	}
-
-	c, err := g.drawCard(t, int(m.CardToDraw))
+	pIdx, err := g.checkPreconditions(id, m)
 	if err != nil {
 		return err
 	}
 
-	if c == Bomb {
+	c, err := g.drawCard(pIdx, int(m.CardToDraw))
+	if err != nil {
+		return err
+	}
+
+	// check victory conditions
+	switch c {
+	case Bomb:
 		g.state = Over
 		g.winner = Vilain
 		return nil
-	}
-
-	if c == Defuse {
+	case Defuse:
 		g.defusesFound++
-	}
 
-	if areAllDefuseFound(g.playersCount(), int(g.defusesFound)) {
-		g.state = Over
-		g.winner = Hero
-		return nil
+		if areAllDefuseFound(g.playersCount(), int(g.defusesFound)) {
+			g.state = Over
+			g.winner = Hero
+			return nil
+		}
 	}
 
 	isNextRound := g.nextTurn(m.Target)
@@ -53,6 +40,32 @@ func (g *Game) Play(id int64, m Move) error {
 	}
 
 	return nil
+}
+
+func (g Game) checkPreconditions(id int64, m Move) (int, error) {
+	switch g.state {
+	case Lobby:
+		return 0, ErrPartyNotReady
+	case Over:
+		return 0, ErrPartyOver
+	}
+
+	if g.playing != id {
+		return 0, ErrNotYourTurn
+	}
+
+	if m.Target == g.playing {
+		return 0, ErrCannotDrawSelf
+	}
+
+	pIdx := g.getPlayerIdx(m.Target)
+
+	if g.getPlayerIdx(id) == missing ||
+		pIdx == missing {
+		return 0, ErrPlayerNotFound
+	}
+
+	return pIdx, nil
 }
 
 func (g *Game) nextTurn(id int64) bool {

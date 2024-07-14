@@ -22,19 +22,12 @@ const (
 )
 
 func (g *Game) drawCard(playerIdx, cardIdx int) (Card, error) {
-	num := cardsPerRound(int(g.round))
-
-	if cardIdx < 0 ||
-		cardIdx >= num {
-		return Unkown, ErrCardNotFound
+	idx, err := g.cardIdx(playerIdx, cardIdx)
+	if err != nil {
+		return Unkown, err
 	}
 
-	begin := playerIdx * num
-	if begin+cardIdx >= len(g.cards) {
-		return Unkown, ErrCardNotFound
-	}
-
-	c := g.cards[begin+cardIdx]
+	c := g.cards[idx]
 	switch c {
 	case Unkown, Drawn:
 		return c, ErrCardNotFound
@@ -42,12 +35,29 @@ func (g *Game) drawCard(playerIdx, cardIdx int) (Card, error) {
 
 	// We flag the card so it's not drawn
 	// next turns
-	g.cards[begin+cardIdx] = Drawn
+	g.cards[idx] = Drawn
 
 	return c, nil
 }
 
-// getPlayerCards returns the cards a player has
+func (g Game) cardIdx(playerIdx, cardIdx int) (idx int, err error) {
+	num := cardsPerRound(int(g.round))
+
+	if cardIdx < 0 ||
+		cardIdx >= num {
+		return 0, ErrCardNotFound
+	}
+
+	begin := playerIdx * num
+	if begin+cardIdx >= len(g.cards) {
+		return 0, ErrCardNotFound
+	}
+
+	return begin + cardIdx, nil
+}
+
+// getPlayerCards returns the cards a player has.
+// internally called, so shouldn't OOB
 func (g Game) getPlayerCards(idx int) []Card {
 	num := cardsPerRound(int(g.round))
 	begin := idx * num

@@ -232,3 +232,73 @@ func TestGame_nextRoundCards(t *testing.T) {
 		})
 	}
 }
+
+func TestGame_getPlayerCards(t *testing.T) {
+	type fields struct {
+		cards        []Card
+		roles        []Role
+		readies      []bool
+		ids          []int64
+		playing      int64
+		round        uint8
+		revealed     uint8
+		defusesFound uint8
+		state        StateKind
+		winner       Role
+	}
+	type args struct {
+		idx int
+	}
+	tests := []struct {
+		name   string
+		want   []Card
+		fields fields
+		args   args
+	}{
+		{
+			name: "third round, 4 players",
+			fields: fields{
+				round: 3,
+				ids:   testPlayerIDs,
+				cards: []Card{
+					Bomb, Safe,
+					Safe, Safe,
+					Safe, Safe,
+					Safe, Defuse,
+				},
+			},
+			args: args{
+				idx: 3,
+			},
+			want: []Card{
+				Safe, Defuse,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := Game{
+				cards:        tt.fields.cards,
+				roles:        tt.fields.roles,
+				readies:      tt.fields.readies,
+				ids:          tt.fields.ids,
+				playing:      tt.fields.playing,
+				round:        tt.fields.round,
+				revealed:     tt.fields.revealed,
+				defusesFound: tt.fields.defusesFound,
+				state:        tt.fields.state,
+				winner:       tt.fields.winner,
+			}
+
+			got := g.getPlayerCards(tt.args.idx)
+
+			if !cmp.Equal(got, tt.want, cmpopts.SortSlices(
+				func(a, b Card) bool {
+					return a < b
+				},
+			)) {
+				t.Errorf("genCards() = %v", g.cards)
+			}
+		})
+	}
+}
