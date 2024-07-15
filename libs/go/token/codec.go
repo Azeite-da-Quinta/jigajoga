@@ -47,14 +47,6 @@ var audience = []string{"jigajoga-client"}
 // Claims creates JWT claims to prepare a token. Use expiration constants
 // from this pkg
 func (e Envelope) Claims(now time.Time) Claims {
-	// 0 if it's neither
-	var exp time.Duration
-	if e.Access != nil {
-		exp = AccessExpiration
-	} else if e.Refresh != nil {
-		exp = RefreshExpiration
-	}
-
 	return Claims{
 		Envelope: e,
 		// TODO check what fields to use
@@ -62,7 +54,7 @@ func (e Envelope) Claims(now time.Time) Claims {
 			Issuer: issuer,
 			// Subject:   "somebody",
 			Audience:  audience,
-			ExpiresAt: jwt.NewNumericDate(now.Add(exp)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(e.expiration())),
 			// NotBefore: jwt.NewNumericDate(now), // We don't need this
 			IssuedAt: jwt.NewNumericDate(now),
 			// ID:        "1",
