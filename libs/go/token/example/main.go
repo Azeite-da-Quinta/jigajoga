@@ -27,7 +27,7 @@ func main() {
 		},
 	}
 
-	s, err := codec.Encode(e.Claims(time.Now(), token.AccessExpiration))
+	s, err := codec.Encode(e.Claims(time.Now()))
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +42,7 @@ func main() {
 		},
 	}
 
-	s, err = codec.Encode(e.Claims(time.Now(), token.RefreshExpiration))
+	s, err = codec.Encode(e.Claims(time.Now()))
 	if err != nil {
 		panic(err)
 	}
