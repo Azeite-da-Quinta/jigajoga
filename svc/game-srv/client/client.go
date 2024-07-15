@@ -82,7 +82,7 @@ func doJobs(ctx context.Context, conf Config) {
 
 		claims := fac.NewUser(mockName(i), roomID).
 			Token().
-			Claims(time.Now())
+			Claims(time.Now(), token.AccessExpiration)
 
 		jwt, err := cod.Encode(claims)
 		if err != nil {

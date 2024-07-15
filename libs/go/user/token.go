@@ -3,6 +3,7 @@ package user
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/Azeite-da-Quinta/jigajoga/libs/go/token"
@@ -30,8 +31,12 @@ type Data struct {
 }
 
 // FromToken creates a User from the token's data
-func FromToken(t token.Data) (Data, error) {
+func FromToken(t token.Envelope) (Data, error) {
 	var u Data
+
+	if t.Access == nil {
+		return Data{}, fmt.Errorf("%w: access", token.ErrMissingContent)
+	}
 
 	id, err := strconv.Atoi(t.IDField)
 	if err != nil {
@@ -51,19 +56,21 @@ func FromToken(t token.Data) (Data, error) {
 }
 
 // Token converts
-func (d Data) Token() (t token.Data) {
+func (d Data) Token() (t token.Envelope) {
 	const base = 10
 
-	return token.Data{
-		IDField:     strconv.FormatInt(int64(d.id), base),
-		RoomIDField: strconv.FormatInt(int64(d.room), base),
-		NameField:   d.name,
+	return token.Envelope{
+		Access: &token.Access{
+			IDField:     strconv.FormatInt(int64(d.id), base),
+			RoomIDField: strconv.FormatInt(int64(d.room), base),
+			NameField:   d.name,
+		},
 	}
 }
 
 // Deserialize returns
 func Deserialize(data []byte) (Token, error) {
-	var t token.Data
+	var t token.Envelope
 	err := json.Unmarshal(data, &t)
 	if err != nil {
 		return Data{}, err
