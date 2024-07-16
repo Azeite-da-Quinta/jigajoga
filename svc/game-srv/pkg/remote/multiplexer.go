@@ -115,7 +115,6 @@ func (mx *Multiplexer) roomLoop(ctx context.Context, remote Remote) {
 			mx.forwardEvent(ctx, p, &wg)
 		}
 	}
-
 }
 
 // forward event to Notifier
