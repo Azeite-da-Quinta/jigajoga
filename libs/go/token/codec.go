@@ -9,39 +9,55 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const (
+	// AccessExpiration expected time to connect to svc/game-srv
+	AccessExpiration = 10 * time.Minute
+	// RefreshExpiration expected duration of a party
+	RefreshExpiration = 24 * time.Hour
+)
+
 // DefaultSecret in string base64 format.
 // THIS MUST BE OVERRIDE. It's weak on purpose so we don't forget
 const DefaultSecret = "QWxoZWlyYXM="
 
-// ErrBadClaims if the cast failed
-var ErrBadClaims = errors.New("failed to get claims")
+var (
+	// ErrBadClaims if the cast failed
+	ErrBadClaims = errors.New("failed to get claims")
+	// ErrMissingContent missing content in token
+	ErrMissingContent = errors.New("missing content in token")
+)
 
 // Base64ToKey converts a string base64 key into bytes
 func Base64ToKey(s string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(s)
 }
 
-// Claims custom claims type for JWT Token
+// Claims custom claims type for JWT Token.
+// Note: by removing the JSON tags, it "hides" the
+// envelope type on the final token.
 type Claims struct {
-	Data `json:"u"`
+	Envelope
 	jwt.RegisteredClaims
 }
 
-// Claims creates JWT claims to prepare a token
-func (u Data) Claims(now time.Time) Claims {
+const issuer = "jigajoga-butler"
+
+var audience = []string{"jigajoga-client"}
+
+// Claims creates JWT claims to prepare a token. Use expiration constants
+// from this pkg
+func (e Envelope) Claims(now time.Time) Claims {
 	return Claims{
-		Data: u,
+		Envelope: e,
 		// TODO check what fields to use
 		RegisteredClaims: jwt.RegisteredClaims{
-			// A usual scenario is to set the expiration
-			// time relative to the current time
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-			// IssuedAt:  jwt.NewNumericDate(now),
-			// NotBefore: jwt.NewNumericDate(now),
-			Issuer: "jigajoga",
+			Issuer: issuer,
 			// Subject:   "somebody",
+			Audience:  audience,
+			ExpiresAt: jwt.NewNumericDate(now.Add(e.expiration())),
+			// NotBefore: jwt.NewNumericDate(now), // We don't need this
+			IssuedAt: jwt.NewNumericDate(now),
 			// ID:        "1",
-			// Audience:  []string{"somebody_else"},
 		},
 	}
 }
@@ -58,19 +74,32 @@ func (c Codec) Encode(claims Claims) (string, error) {
 	return token.SignedString(c.Key)
 }
 
-// Decode the JWT string and returns its inner Data
-func (c Codec) Decode(s string) (Data, error) {
-	token, err := jwt.ParseWithClaims(s, &Claims{},
+// Decode the JWT string and returns its inner Envelope
+func (c Codec) Decode(s string) (Envelope, error) {
+	token, err := jwt.ParseWithClaims(
+		s, &Claims{},
 		func(token *jwt.Token) (any, error) {
 			return c.Key, nil
 		},
+		jwt.WithAudience(audience[0]),
+		jwt.WithIssuer(issuer),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuedAt(),
+		// TODO: check other options
 	)
-
 	if err != nil {
-		return Data{}, err
-	} else if claims, ok := token.Claims.(*Claims); ok {
-		return claims.Data, nil
+		return Envelope{}, err
 	}
 
-	return Data{}, ErrBadClaims
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return Envelope{}, ErrBadClaims
+	}
+
+	if claims.Access == nil &&
+		claims.Refresh == nil {
+		return Envelope{}, ErrMissingContent
+	}
+
+	return claims.Envelope, nil
 }
